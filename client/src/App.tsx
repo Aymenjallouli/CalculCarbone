@@ -9,6 +9,8 @@ import Merchandise from "@/pages/merchandise";
 import Transport from "@/pages/transport";
 import Results from "@/pages/results";
 import Navbar from "@/components/layout/Navbar";
+import Event from "@/pages/event";
+import StudyTrip from "@/pages/study-trip";
 
 function Router() {
   return (
@@ -16,6 +18,8 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/merchandise" component={Merchandise} />
       <Route path="/transport" component={Transport} />
+      <Route path="/event" component={Event} />
+      <Route path="/study-trip" component={StudyTrip} />
       <Route path="/results" component={Results} />
       <Route component={NotFound} />
     </Switch>

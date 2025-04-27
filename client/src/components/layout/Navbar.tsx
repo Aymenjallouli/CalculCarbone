@@ -17,6 +17,8 @@ export default function Navbar() {
     { name: "Accueil", path: "/" },
     { name: "Marchandises", path: "/merchandise" },
     { name: "Transport", path: "/transport" },
+    { name: "Événements", path: "/event" },
+    { name: "Voyages d'étude", path: "/study-trip" },
     { name: "Résultats", path: "/results" },
   ];
 

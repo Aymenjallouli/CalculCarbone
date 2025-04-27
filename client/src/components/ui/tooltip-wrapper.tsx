@@ -9,7 +9,7 @@ import { Info } from "lucide-react";
 
 interface TooltipWrapperProps {
   content: string;
-  children: React.ReactNode;
+  children?: React.ReactNode;
   className?: string;
   side?: "top" | "right" | "bottom" | "left";
   infoIcon?: boolean;
