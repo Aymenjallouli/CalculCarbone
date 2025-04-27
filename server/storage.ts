@@ -3,6 +3,8 @@ import {
   InsertUser, 
   MerchandiseInput, 
   TransportInput, 
+  EventInput,
+  StudyTripInput,
   EmissionResult,
   CalculationResult,
   InsertCalculationResult
@@ -10,6 +12,8 @@ import {
 import { 
   calculateMerchandiseEmissions, 
   calculateTransportEmissions,
+  calculateEventEmissions,
+  calculateStudyTripEmissions,
   calculateTotalEmissions 
 } from "../client/src/lib/calculations";
 
@@ -23,6 +27,8 @@ export interface IStorage {
   // Carbon calculator methods
   saveMerchandiseData(userId: number | null, data: MerchandiseInput): Promise<void>;
   saveTransportData(userId: number | null, data: TransportInput): Promise<void>;
+  saveEventData(userId: number | null, data: EventInput): Promise<void>;
+  saveStudyTripData(userId: number | null, data: StudyTripInput): Promise<void>;
   getCalculationResult(userId: number | null): Promise<EmissionResult | null>;
   saveCalculationResult(result: InsertCalculationResult): Promise<CalculationResult>;
 }
@@ -31,10 +37,14 @@ export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private merchandiseData: Map<number, MerchandiseInput>;
   private transportData: Map<number, TransportInput>;
+  private eventData: Map<number, EventInput>;
+  private studyTripData: Map<number, StudyTripInput>;
   private results: Map<number, CalculationResult>;
   private sessionData: Map<string, {
     merchandise?: MerchandiseInput;
     transport?: TransportInput;
+    event?: EventInput;
+    studyTrip?: StudyTripInput;
   }>;
   currentId: number;
   private resultId: number;
@@ -43,6 +53,8 @@ export class MemStorage implements IStorage {
     this.users = new Map();
     this.merchandiseData = new Map();
     this.transportData = new Map();
+    this.eventData = new Map();
+    this.studyTripData = new Map();
     this.results = new Map();
     this.sessionData = new Map();
     this.currentId = 1;

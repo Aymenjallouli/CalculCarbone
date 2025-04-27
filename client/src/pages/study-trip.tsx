@@ -429,7 +429,7 @@ export default function StudyTrip() {
             <Button
               type="button" 
               variant="outline"
-              onClick={() => navigate("/event")}
+              onClick={() => setLocation("/event")}
             >
               Précédent
             </Button>
