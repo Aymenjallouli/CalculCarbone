@@ -56,11 +56,7 @@ export default function StudyTrip() {
     setIsSubmitting(true);
 
     try {
-      await apiRequest({
-        method: "POST",
-        path: "/api/study-trip",
-        body: data,
-      });
+      await apiRequest("POST", "/api/study-trip", data);
 
       toast({
         title: "Données de voyage d'étude enregistrées",

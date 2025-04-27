@@ -50,11 +50,7 @@ export default function Event() {
     setIsSubmitting(true);
 
     try {
-      await apiRequest({
-        method: "POST",
-        path: "/api/event",
-        body: data,
-      });
+      await apiRequest("POST", "/api/event", data);
 
       toast({
         title: "Données d'événement enregistrées",

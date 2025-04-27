@@ -120,37 +120,96 @@ export class MemStorage implements IStorage {
     // If we have both merchandise and transport data, calculate and save results
     await this.calculateAndSaveResults(userId);
   }
+  
+  async saveEventData(userId: number | null, data: EventInput): Promise<void> {
+    const sessionId = this.getSessionId(userId);
+    
+    if (userId) {
+      // Store for authenticated user
+      this.eventData.set(userId, data);
+    } else {
+      // Store in session for anonymous user
+      const sessionData = this.sessionData.get(sessionId) || {};
+      this.sessionData.set(sessionId, {
+        ...sessionData,
+        event: data
+      });
+    }
+    
+    // Recalculate results with the new data
+    await this.calculateAndSaveResults(userId);
+  }
+  
+  async saveStudyTripData(userId: number | null, data: StudyTripInput): Promise<void> {
+    const sessionId = this.getSessionId(userId);
+    
+    if (userId) {
+      // Store for authenticated user
+      this.studyTripData.set(userId, data);
+    } else {
+      // Store in session for anonymous user
+      const sessionData = this.sessionData.get(sessionId) || {};
+      this.sessionData.set(sessionId, {
+        ...sessionData,
+        studyTrip: data
+      });
+    }
+    
+    // Recalculate results with the new data
+    await this.calculateAndSaveResults(userId);
+  }
 
   private async calculateAndSaveResults(userId: number | null): Promise<void> {
     const sessionId = this.getSessionId(userId);
     
     let merchandiseData: MerchandiseInput | undefined;
     let transportData: TransportInput | undefined;
+    let eventData: EventInput | undefined;
+    let studyTripData: StudyTripInput | undefined;
     
     if (userId) {
       // Get data for authenticated user
       merchandiseData = this.merchandiseData.get(userId);
       transportData = this.transportData.get(userId);
+      eventData = this.eventData.get(userId);
+      studyTripData = this.studyTripData.get(userId);
     } else {
       // Get data from session for anonymous user
       const sessionData = this.sessionData.get(sessionId);
       if (sessionData) {
         merchandiseData = sessionData.merchandise;
         transportData = sessionData.transport;
+        eventData = sessionData.event;
+        studyTripData = sessionData.studyTrip;
       }
     }
     
-    // If we have both data sets, calculate results
+    // If we have at least the base data sets, calculate results
     if (merchandiseData && transportData) {
       const merchandiseEmissions = calculateMerchandiseEmissions(merchandiseData);
       const transportEmissions = calculateTransportEmissions(transportData);
-      const totalEmissions = calculateTotalEmissions(merchandiseEmissions, transportEmissions);
+      
+      // Calculate optional event emissions if available
+      const eventEmissions = eventData ? calculateEventEmissions(eventData) : undefined;
+      
+      // Calculate optional study trip emissions if available
+      const studyTripEmissions = studyTripData ? calculateStudyTripEmissions(studyTripData) : undefined;
+      
+      // Calculate total emissions from all available sources
+      const totalEmissions = calculateTotalEmissions(
+        merchandiseEmissions, 
+        transportEmissions, 
+        eventEmissions, 
+        studyTripEmissions
+      );
       
       // Save the calculation result
       await this.saveCalculationResult({
         userId: userId || null,
         merchandiseInput: merchandiseData,
         transportInput: transportData,
+        eventInput: eventData || null,
+        studyTripInput: studyTripData || null,
         results: totalEmissions,
         createdAt: new Date().toISOString()
       });
@@ -177,7 +236,23 @@ export class MemStorage implements IStorage {
       if (sessionData?.merchandise && sessionData?.transport) {
         const merchandiseEmissions = calculateMerchandiseEmissions(sessionData.merchandise);
         const transportEmissions = calculateTransportEmissions(sessionData.transport);
-        return calculateTotalEmissions(merchandiseEmissions, transportEmissions);
+        
+        // Calculate optional event emissions if available
+        const eventEmissions = sessionData.event
+          ? calculateEventEmissions(sessionData.event) 
+          : undefined;
+          
+        // Calculate optional study trip emissions if available
+        const studyTripEmissions = sessionData.studyTrip
+          ? calculateStudyTripEmissions(sessionData.studyTrip)
+          : undefined;
+          
+        return calculateTotalEmissions(
+          merchandiseEmissions, 
+          transportEmissions, 
+          eventEmissions, 
+          studyTripEmissions
+        );
       }
     }
     
