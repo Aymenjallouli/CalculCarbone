@@ -2,10 +2,56 @@ import { EMISSION_FACTORS, MEAL_TYPES } from "./constants";
 import { 
   MerchandiseInput, 
   TransportInput, 
+  TransportCSVData,
   EventInput,
   StudyTripInput,
   EmissionResult 
 } from "@shared/schema";
+
+// Calculate emissions based on CSV transport data
+export function calculateCSVTransportEmissions(data: TransportCSVData[]) {
+  const breakdown: Record<string, number> = {};
+  let totalEmissions = 0;
+
+  // Process daily commute data
+  data.forEach(student => {
+    // Calculate commute emissions based on distance, months per year, and days per month
+    const commuteEmissions = student.distanceAllerRetour * student.nbMoisEcole * student.nbJoursEcoleMois * 0.15; // Using average emission factor
+    
+    // Calculate bus emissions
+    const busEmissions = student.kmBus * 0.05; // Lower emission factor for public transport
+    
+    // Calculate car emissions (both regular car use and personal car)
+    const carEmissions = (student.kmVoiture + student.kmVoiturePerso) * 0.2; // Higher emission factor for cars
+    
+    // Add to total and breakdown
+    totalEmissions += commuteEmissions + busEmissions + carEmissions;
+    
+    // Update breakdown
+    breakdown.commuteTravel = (breakdown.commuteTravel || 0) + commuteEmissions;
+    breakdown.bus = (breakdown.bus || 0) + busEmissions;
+    breakdown.car = (breakdown.car || 0) + carEmissions;
+    
+    // Add family visit emissions if available
+    if (student.frequenceRetourFamille && student.distanceMoyenneRetourFamille) {
+      const familyVisitEmissions = student.frequenceRetourFamille * student.distanceMoyenneRetourFamille * 0.15;
+      totalEmissions += familyVisitEmissions;
+      breakdown.familyVisits = (breakdown.familyVisits || 0) + familyVisitEmissions;
+    }
+    
+    // Add delivery emissions if available
+    if (student.nbLivraisonsSemaine && student.distanceMoyenneLivraison) {
+      const deliveryEmissions = student.nbLivraisonsSemaine * student.distanceMoyenneLivraison * 0.2 * 40; // 40 weeks per year
+      totalEmissions += deliveryEmissions;
+      breakdown.deliveries = (breakdown.deliveries || 0) + deliveryEmissions;
+    }
+  });
+
+  return {
+    totalEmissions,
+    breakdown,
+  };
+}
 
 // Calculate emissions for merchandise
 export function calculateMerchandiseEmissions(input: MerchandiseInput) {
@@ -32,13 +78,20 @@ export function calculateTransportEmissions(input: TransportInput) {
   const breakdown: Record<string, number> = {};
   let totalEmissions = 0;
 
+  // Check if we're using CSV import data
+  if (input.isCSVImport && input.csvData && input.csvData.length > 0) {
+    // Calculate emissions from CSV data
+    return calculateCSVTransportEmissions(input.csvData);
+  }
+
+  // Otherwise calculate with manual input
   Object.entries(input).forEach(([key, value]) => {
-    if (key in EMISSION_FACTORS.transport) {
+    if (key in EMISSION_FACTORS.transport && typeof value === 'object' && value !== null && !Array.isArray(value) && 'distance' in value) {
       const mode = key as keyof typeof EMISSION_FACTORS.transport;
-      const { distance, frequency, passengers } = value;
+      const transportData = value as { distance: number; frequency: number; passengers: number };
       
       // Weekly emissions calculation
-      const weeklyDistance = distance * frequency;
+      const weeklyDistance = transportData.distance * transportData.frequency;
       
       // Annual emissions (assuming 40 school weeks)
       const annualDistance = weeklyDistance * 40;
@@ -47,8 +100,8 @@ export function calculateTransportEmissions(input: TransportInput) {
       let emissions = annualDistance * EMISSION_FACTORS.transport[mode];
       
       // For shared transport, divide by number of passengers if applicable
-      if (mode === 'car' && passengers > 1) {
-        emissions = emissions / passengers;
+      if (mode === 'car' && transportData.passengers > 1) {
+        emissions = emissions / transportData.passengers;
       }
       
       breakdown[key] = emissions;
