@@ -49,27 +49,33 @@ const transportModeSchema = z.object({
 export const transportCSVSchema = z.object({
   // Identification
   id: z.string().optional(),
-  email: z.string().email().optional(),
+  email: z.string().optional(),
   nom: z.string().optional(),
+  lastModified: z.string().optional(),
   statut: z.string().optional(),
   
   // Residence information
   residence: z.string().optional(),
   
-  // School commute details
+  // School commute details (only for off-campus residence)
   distanceAllerRetour: z.coerce.number().min(0).default(0),
   nbMoisEcole: z.coerce.number().min(0).max(12).default(0),
   nbJoursEcoleMois: z.coerce.number().min(0).max(31).default(0),
   
   // Transportation modes
   kmBus: z.coerce.number().min(0).default(0),
-  kmVoiture: z.coerce.number().min(0).default(0),
-  typeCarburant: z.string().optional(),
-  consommationCarburant: z.coerce.number().min(0).default(0),
+  kmTrain: z.coerce.number().min(0).default(0),
+  kmMotoScooter: z.coerce.number().min(0).default(0),
+  typeCarburantMoto: z.string().optional(),
+  consommationMoto: z.coerce.number().min(0).default(0),
   
-  // Additional transport
+  kmVoiture: z.coerce.number().min(0).default(0),
+  typeCarburantVoiture: z.string().optional(),
+  consommationVoiture: z.coerce.number().min(0).default(0),
+  
+  // Personal transport
   kmVoiturePerso: z.coerce.number().min(0).default(0),
-  typeCarburantPerso: z.string().optional(),
+  typeCarburantPerso: z.string().optional(), 
   consommationCarburantSemaine: z.coerce.number().min(0).default(0),
   consommationElectriciteSemaine: z.coerce.number().min(0).default(0),
   
@@ -80,9 +86,20 @@ export const transportCSVSchema = z.object({
   // Family visits
   frequenceRetourFamille: z.coerce.number().min(0).default(0),
   distanceMoyenneRetourFamille: z.coerce.number().min(0).default(0),
+  kmBusRetourFamille: z.coerce.number().min(0).default(0),
+  kmTrainRetourFamille: z.coerce.number().min(0).default(0),
+  kmMotoRetourFamille: z.coerce.number().min(0).default(0),
+  typeCarburantMotoRetour: z.string().optional(),
+  consommationMotoRetour: z.coerce.number().min(0).default(0),
+  kmVoitureRetourFamille: z.coerce.number().min(0).default(0),
+  typeCarburantVoitureRetour: z.string().optional(),
+  consommationVoitureRetour: z.coerce.number().min(0).default(0),
   
   // Raw CSV data (to keep all columns not explicitly mapped)
   rawData: z.record(z.string(), z.any()).optional(),
+  
+  // Flag for on-campus residence
+  isOnCampus: z.boolean().default(false),
 });
 
 // Schema for transport inputs

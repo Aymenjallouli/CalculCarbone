@@ -23,6 +23,7 @@ import { useLocation } from "wouter";
 import { CSVUploader } from "@/components/CSVUploader";
 import { 
   calculateTransportEmissions, 
+  calculateCSVTransportEmissions,
   calculateTotalEmissions 
 } from "@/lib/calculations";
 import { Separator } from "@/components/ui/separator";
@@ -99,29 +100,63 @@ export default function Transport() {
     try {
       // Process and save the CSV data
       // Convert the raw CSV data to our structured format
-      const structuredData: TransportCSVData[] = data.map(row => ({
-        id: row.Id?.toString() || "",
-        email: row["Adresse de messagerie"] || "",
-        nom: row.Nom || "",
-        statut: row.Statut || "",
-        residence: row["Résidence principale :"] || "",
-        distanceAllerRetour: Number(row["Distance aller-retour domicile ↔ école (km/jour)  prend en considération le nombre d'aller-retour par jour :"]) || 0,
-        nbMoisEcole: Number(row["Nombre de mois par an où vous vous rendez à l'école (entre 1 et 12 ):"]) || 0,
-        nbJoursEcoleMois: Number(row["Nombre de jours par mois où vous vous rendez à l'école (entre 1 et 30) :"]) || 0,
-        kmBus: Number(row["Combien de km en bus ?"]) || 0,
-        kmVoiture: Number(row["Combien de km en Voiture ?"]) || 0,
-        typeCarburant: row["Type de carburant :3"] || "",
-        consommationCarburant: Number(row["Consommation journalière de carburant (en L):"]) || 0,
-        kmVoiturePerso: Number(row["Combien de km en Voiture personnelle/Covoiturage/Taxi?"]) || 0,
-        typeCarburantPerso: row["Type de carburant :1"] || "",
-        consommationCarburantSemaine: Number(row["Consommation de carburant en moyenne par semaine (en L) :"]) || 0,
-        consommationElectriciteSemaine: Number(row["Consommation d'électricité en moyenne par semaine (en kWh) :"]) || 0,
-        nbLivraisonsSemaine: Number(row["Nombre moyen de livraisons (repas, colis) reçues par semaine :"]) || 0,
-        distanceMoyenneLivraison: Number(row["Distance moyenne pour une livraison (Km) :"]) || 0,
-        frequenceRetourFamille: Number(row["Fréquence des retours en famille pendant une semestre :"]) || 0,
-        distanceMoyenneRetourFamille: Number(row["Distance moyenne en (Km) d'aller-retour :"]) || 0,
-        rawData: row, // Keep all original data
-      }));
+      const structuredData: TransportCSVData[] = data.map(row => {
+        // Check if student lives on campus
+        const residenceType = row["Résidence principale :"] || "";
+        const isOnCampus = residenceType.includes("campus") || residenceType.includes("foyer");
+        
+        return {
+          // Basic information
+          id: row.ID?.toString() || "",
+          email: row["Adresse de messagerie"] || "",
+          nom: row.Nom || "",
+          lastModified: row["Heure de la dernière modification"] || "",
+          statut: row.Statut || "",
+          residence: residenceType,
+          isOnCampus,
+          
+          // Daily commute (only relevant for off-campus students)
+          distanceAllerRetour: Number(row["Distance aller-retour domicile ↔ école (km/jour)  prend en considération le nombre d'aller-retour par jour :"]) || 0,
+          nbMoisEcole: Number(row["Nombre de mois par an où vous vous rendez à l'école (entre 1 et 12 ):"]) || 0,
+          nbJoursEcoleMois: Number(row["Nombre de jours par mois où vous vous rendez à l'école (entre 1 et 30) :"]) || 0,
+          
+          // Transportation modes
+          kmBus: Number(row["Combien de km en bus ?"]) || 0,
+          kmTrain: Number(row["Combien de km en Train ?"]) || 0,
+          kmMotoScooter: Number(row["Combien de km en Moto/Scooter ?"]) || 0,
+          typeCarburantMoto: row["Type de carburant :2"] || "",
+          consommationMoto: Number(row["Consommation journalière de carburant (en L):1"]) || 0,
+          
+          kmVoiture: Number(row["Combien de km en Voiture ?"]) || 0,
+          typeCarburantVoiture: row["Type de carburant :3"] || "",
+          consommationVoiture: Number(row["Consommation journalière de carburant (en L):2"]) || 0,
+          
+          // Personal transport
+          kmVoiturePerso: Number(row["Combien de km en Voiture personnelle/Covoiturage/Taxi?"]) || 0,
+          typeCarburantPerso: row["Type de carburant :4"] || "",
+          consommationCarburantSemaine: Number(row["Consommation de carburant en moyenne par semaine (en L) :"]) || 0,
+          consommationElectriciteSemaine: Number(row["Consommation d'électricité en moyenne par semaine (en kWh) :"]) || 0,
+          
+          // Deliveries
+          nbLivraisonsSemaine: Number(row["Nombre moyen de livraisons (repas, colis) reçues par semaine :"]) || 0,
+          distanceMoyenneLivraison: Number(row["Distance moyenne pour une livraison (Km) :"]) || 0,
+          
+          // Family visits and return transport
+          frequenceRetourFamille: Number(row["Fréquence des retours en famille pendant une semestre :"]) || 0,
+          distanceMoyenneRetourFamille: Number(row["Distance moyenne en (Km) d'aller-retour :"]) || 0,
+          kmBusRetourFamille: Number(row["Combien de km en Bus ?3"]) || 0,
+          kmTrainRetourFamille: Number(row["Combien de km en Train ?3"]) || 0,
+          kmMotoRetourFamille: Number(row["Combien de km en Moto ?2"]) || 0,
+          typeCarburantMotoRetour: row["Type de carburant :5"] || "",
+          consommationMotoRetour: Number(row["Consommation journalière de carburant (en L):3"]) || 0,
+          kmVoitureRetourFamille: Number(row["Combien de km en Voiture ?2"]) || 0,
+          typeCarburantVoitureRetour: row["Type de carburant :6"] || "",
+          consommationVoitureRetour: Number(row["Consommation journalière de carburant (en L):4"]) || 0,
+          
+          // Keep all original data
+          rawData: row,
+        };
+      });
 
       // Update state with the CSV data
       setCsvData(structuredData);
@@ -169,16 +204,8 @@ export default function Transport() {
       // Save data to server
       await apiRequest("POST", "/api/transport", dataToSubmit);
 
-      // Calculate estimated emissions based on CSV data
-      // Here we use the existing transport calculation but could add a specialized one
-      const estimatedEmissions = {
-        totalEmissions: csvData.reduce((total, student) => 
-          total + (student.distanceAllerRetour * student.nbMoisEcole * student.nbJoursEcoleMois * 0.2), 0),
-        breakdown: {
-          'bus': csvData.reduce((total, student) => total + (student.kmBus * 0.1), 0),
-          'voiture': csvData.reduce((total, student) => total + (student.kmVoiture * 0.2), 0)
-        }
-      };
+      // Calculate emissions using our specialized function
+      const estimatedEmissions = calculateCSVTransportEmissions(csvData);
 
       // Store emissions in localStorage for the results page
       localStorage.setItem("transportEmissions", JSON.stringify(estimatedEmissions));
