@@ -93,6 +93,7 @@ export type EventInput = z.infer<typeof eventSchema>;
 export const studyTripSchema = z.object({
   // Trip details
   destination: z.string().min(1, "La destination est requise"),
+  tripCount: z.number().min(1, "Au moins un voyage doit être réalisé").default(1),
   distanceKm: z.number().min(0).default(0),
   duration: z.number().min(1, "La durée minimale est de 1 jour").default(1),
   participants: z.number().min(1, "Le nombre de participants doit être d'au moins 1").default(1),

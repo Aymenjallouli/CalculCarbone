@@ -6,6 +6,8 @@ export const EMISSION_FACTORS = {
     paper: 0.03, // per sheet
     notebook: 0.5, // per notebook
     textbook: 2.0, // per textbook
+    machine: 150.0, // per washing machine
+    refrigerator: 200.0,// per refrigerator
     
     // Technology
     computer: 300.0, // per desktop computer
@@ -88,7 +90,8 @@ export const MERCHANDISE_CATEGORIES = [
   // Basic school supplies
   { id: "paper", label: "Papier (feuilles)", unit: "feuilles", category: "Fournitures de base" },
   { id: "notebook", label: "Cahiers", unit: "cahiers", category: "Fournitures de base" },
-  { id: "textbook", label: "Manuels scolaires", unit: "manuels", category: "Fournitures de base" },
+  { id: "textbook", label: "Manuels scolaires", unit: "manuels", category: "Fournitures de base" },{ id: "machine", label: "Machine à laver", unit: "machine", category: "electronique" },
+  { id: "refrigerator", label: "Réfrigérateur", unit: "réfrigérateur", category: "électronique"},
   
   // Technology
   { id: "computer", label: "Ordinateurs de bureau", unit: "unités", category: "Équipement technologique" },
