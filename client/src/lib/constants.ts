@@ -122,12 +122,12 @@ export const TRANSPORT_MODES = [
 
 // Study trip transportation modes
 export const STUDY_TRIP_TRANSPORT_MODES = [
-  { id: "plane", label: "Avion" },
-  { id: "train", label: "Train" },
-  { id: "bus", label: "Bus" },
-  { id: "car", label: "Voiture" },
-  { id: "boat", label: "Bateau" },
-  { id: "other", label: "Autre" },
+  { id: "plane", label: "Avion", unit: "km" },
+  { id: "train", label: "Train", unit: "km" },
+  { id: "bus", label: "Bus", unit: "km" },
+  { id: "car", label: "Voiture", unit: "km" },
+  { id: "boat", label: "Bateau", unit: "km" },
+  { id: "other", label: "Autre", unit: "km" },
 ];
 
 // Study trip accommodation types
@@ -197,6 +197,7 @@ export const TOOLTIPS = {
   
   studyTrip: {
     destination: "Lieu de destination du voyage d'étude",
+    tripCount: "Nombre de voyages effectués sur l'année pour cette destination",
     distanceKm: "Distance totale parcourue (aller-retour) en kilomètres",
     duration: "Durée totale du voyage en jours",
     participants: "Nombre total d'élèves et d'accompagnateurs",

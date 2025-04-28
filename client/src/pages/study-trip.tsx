@@ -28,6 +28,7 @@ export default function StudyTrip() {
   // Define default values to initialize the form
   const defaultValues: StudyTripInput = {
     destination: "",
+    tripCount: 1,
     distanceKm: 0,
     duration: 1,
     participants: 1,
@@ -107,6 +108,30 @@ export default function StudyTrip() {
                       <FormControl>
                         <Input placeholder="ex: Paris" {...field} />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="tripCount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Nombre de voyages{" "}
+                        <TooltipWrapper content={TOOLTIPS.studyTrip.tripCount} infoIcon />
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={1}
+                          placeholder="1"
+                          {...field}
+                          onChange={(e) => field.onChange(Number(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormDescription>Nombre de fois que ce voyage est effectué dans l'année</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -212,7 +237,7 @@ export default function StudyTrip() {
                         <SelectContent>
                           {STUDY_TRIP_TRANSPORT_MODES.map((mode) => (
                             <SelectItem key={mode.id} value={mode.id}>
-                              {mode.label}
+                              {mode.label} ({form.watch("distanceKm") || 0} {mode.unit})
                             </SelectItem>
                           ))}
                         </SelectContent>

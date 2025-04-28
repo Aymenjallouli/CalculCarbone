@@ -121,6 +121,9 @@ export function calculateEventEmissions(input: EventInput) {
 export function calculateStudyTripEmissions(input: StudyTripInput) {
   const breakdown: Record<string, number> = {};
   let totalEmissions = 0;
+  
+  // Get trip count with default of 1 if not provided
+  const tripCount = input.tripCount || 1;
 
   // Transportation emissions
   if (input.transportMode in EMISSION_FACTORS.studyTrip) {
@@ -132,8 +135,11 @@ export function calculateStudyTripEmissions(input: StudyTripInput) {
       ? transportEmissions * (input.vehicleCount / Math.ceil(input.participants / 4)) // assuming 4 passengers per vehicle
       : transportEmissions;
     
-    breakdown.transport = adjustedTransportEmissions;
-    totalEmissions += adjustedTransportEmissions;
+    // Multiply by the number of trips
+    const totalTransportEmissions = adjustedTransportEmissions * tripCount;
+    
+    breakdown.transport = totalTransportEmissions;
+    totalEmissions += totalTransportEmissions;
   }
 
   // Accommodation emissions
@@ -153,13 +159,13 @@ export function calculateStudyTripEmissions(input: StudyTripInput) {
       break;
   }
   
-  const accommodationEmissions = input.nightsStay * accommodationEmissionFactor * input.participants;
+  const accommodationEmissions = input.nightsStay * accommodationEmissionFactor * input.participants * tripCount;
   breakdown.accommodation = accommodationEmissions;
   totalEmissions += accommodationEmissions;
 
   // Local transport emissions
   if (input.localTransport && input.localTransportKm > 0) {
-    const localTransportEmissions = input.localTransportKm * EMISSION_FACTORS.studyTrip.localTransport * input.participants;
+    const localTransportEmissions = input.localTransportKm * EMISSION_FACTORS.studyTrip.localTransport * input.participants * tripCount;
     breakdown.localTransport = localTransportEmissions;
     totalEmissions += localTransportEmissions;
   }
@@ -172,7 +178,7 @@ export function calculateStudyTripEmissions(input: StudyTripInput) {
     mealEmissionFactor = EMISSION_FACTORS.studyTrip.veganMeal;
   }
 
-  const mealsEmissions = input.mealsCount * mealEmissionFactor * input.participants;
+  const mealsEmissions = input.mealsCount * mealEmissionFactor * input.participants * tripCount;
   breakdown.meals = mealsEmissions;
   totalEmissions += mealsEmissions;
 
