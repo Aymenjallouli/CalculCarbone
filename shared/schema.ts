@@ -45,17 +45,63 @@ const transportModeSchema = z.object({
   passengers: z.number().min(1).max(8).default(1),
 });
 
+// Schema for CSV transport data
+export const transportCSVSchema = z.object({
+  // Identification
+  id: z.string().optional(),
+  email: z.string().email().optional(),
+  nom: z.string().optional(),
+  statut: z.string().optional(),
+  
+  // Residence information
+  residence: z.string().optional(),
+  
+  // School commute details
+  distanceAllerRetour: z.coerce.number().min(0).default(0),
+  nbMoisEcole: z.coerce.number().min(0).max(12).default(0),
+  nbJoursEcoleMois: z.coerce.number().min(0).max(31).default(0),
+  
+  // Transportation modes
+  kmBus: z.coerce.number().min(0).default(0),
+  kmVoiture: z.coerce.number().min(0).default(0),
+  typeCarburant: z.string().optional(),
+  consommationCarburant: z.coerce.number().min(0).default(0),
+  
+  // Additional transport
+  kmVoiturePerso: z.coerce.number().min(0).default(0),
+  typeCarburantPerso: z.string().optional(),
+  consommationCarburantSemaine: z.coerce.number().min(0).default(0),
+  consommationElectriciteSemaine: z.coerce.number().min(0).default(0),
+  
+  // Deliveries and other transportation
+  nbLivraisonsSemaine: z.coerce.number().min(0).default(0),
+  distanceMoyenneLivraison: z.coerce.number().min(0).default(0),
+  
+  // Family visits
+  frequenceRetourFamille: z.coerce.number().min(0).default(0),
+  distanceMoyenneRetourFamille: z.coerce.number().min(0).default(0),
+  
+  // Raw CSV data (to keep all columns not explicitly mapped)
+  rawData: z.record(z.string(), z.any()).optional(),
+});
+
 // Schema for transport inputs
 export const transportSchema = z.object({
+  // Legacy form input fields
   car: transportModeSchema,
   bus: transportModeSchema,
   train: transportModeSchema,
   bicycle: transportModeSchema,
   walking: transportModeSchema,
   schoolBus: transportModeSchema,
+  
+  // CSV data fields
+  csvData: z.array(transportCSVSchema).optional(),
+  isCSVImport: z.boolean().default(false),
 });
 
-// Type for transport inputs
+// Transport input types
+export type TransportCSVData = z.infer<typeof transportCSVSchema>;
 export type TransportInput = z.infer<typeof transportSchema>;
 
 // Schema for event inputs (based on Empreinte Carbone Event Scope3)

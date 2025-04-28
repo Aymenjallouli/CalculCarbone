@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Form,
   FormControl,
@@ -13,12 +14,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { TooltipWrapper } from "@/components/ui/tooltip-wrapper";
 import { TRANSPORT_MODES, TOOLTIPS } from "@/lib/constants";
-import { transportSchema, type TransportInput } from "@shared/schema";
+import { transportSchema, type TransportInput, type TransportCSVData } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
+import { CSVUploader } from "@/components/CSVUploader";
 import { 
   calculateTransportEmissions, 
   calculateTotalEmissions 
