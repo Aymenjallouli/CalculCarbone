@@ -11,6 +11,8 @@ import Results from "@/pages/results";
 import Navbar from "@/components/layout/Navbar";
 import Event from "@/pages/event";
 import StudyTrip from "@/pages/study-trip";
+import { ThemeProvider } from "@/components/layout/ThemeProvider";
+import { EPTProverdyBanner } from "@/components/layout/EPTProverdyBanner";
 
 function Router() {
   return (
@@ -29,15 +31,20 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <div className="min-h-screen flex flex-col">
-          <Navbar />
-          <main className="flex-1">
-            <Router />
-          </main>
-        </div>
-        <Toaster />
-      </TooltipProvider>
+      <ThemeProvider>
+        <TooltipProvider>
+          <div className="min-h-screen flex flex-col relative overflow-hidden">
+            <Navbar />
+            <main className="flex-1 container mx-auto px-4 py-6">
+              {/* Bannière EPT-Proverdy en haut de chaque page */}
+              <EPTProverdyBanner />
+              
+              <Router />
+            </main>
+          </div>
+          <Toaster />
+        </TooltipProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
