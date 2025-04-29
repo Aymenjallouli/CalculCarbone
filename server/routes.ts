@@ -7,8 +7,12 @@ import {
   eventSchema, 
   studyTripSchema 
 } from "@shared/schema";
+import { setupAuth } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup authentication
+  setupAuth(app);
+  
   // put application routes here
   // prefix all routes with /api
 

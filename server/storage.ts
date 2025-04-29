@@ -20,6 +20,7 @@ import {
 // modify the interface with any CRUD methods
 // you might need
 export interface IStorage {
+  // User methods
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
@@ -31,6 +32,9 @@ export interface IStorage {
   saveStudyTripData(userId: number | null, data: StudyTripInput): Promise<void>;
   getCalculationResult(userId: number | null): Promise<EmissionResult | null>;
   saveCalculationResult(result: InsertCalculationResult): Promise<CalculationResult>;
+  
+  // User calculation history
+  getUserCalculationHistory(userId: number): Promise<CalculationResult[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -205,7 +209,7 @@ export class MemStorage implements IStorage {
       
       // Save the calculation result
       await this.saveCalculationResult({
-        userId: userId || null,
+        userId: userId !== null ? userId : null,
         merchandiseInput: merchandiseData,
         transportInput: transportData,
         eventInput: eventData || null,
@@ -264,6 +268,18 @@ export class MemStorage implements IStorage {
     const result: CalculationResult = { ...data, id };
     this.results.set(id, result);
     return result;
+  }
+  
+  async getUserCalculationHistory(userId: number): Promise<CalculationResult[]> {
+    // Filter results to get only those for this user, sorted by creation date (newest first)
+    return Array.from(this.results.values())
+      .filter(result => result.userId === userId)
+      .sort((a, b) => {
+        // Sort by date, most recent first
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return dateB - dateA;
+      });
   }
 }
 
