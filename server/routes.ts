@@ -21,21 +21,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = merchandiseSchema.parse(req.body);
       
-      // For this application, we'll store data for anonymous users (no auth required)
-      // In a real app, you'd get userId from authenticated session
-      const userId = null;
+      // Get userId from authenticated session if available
+      const userId = req.isAuthenticated() ? req.user.id : null;
       
       await storage.saveMerchandiseData(userId, validatedData);
       
       res.status(200).json({ 
         success: true, 
-        message: "Merchandise data saved successfully" 
+        message: "Données d'équipement enregistrées avec succès" 
       });
     } catch (error) {
       console.error("Error saving merchandise data:", error);
       res.status(400).json({ 
         success: false, 
-        message: "Invalid merchandise data" 
+        message: "Données d'équipement invalides" 
       });
     }
   });
@@ -45,20 +44,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = transportSchema.parse(req.body);
       
-      // For this application, we'll store data for anonymous users (no auth required)
-      const userId = null;
+      // Get userId from authenticated session if available
+      const userId = req.isAuthenticated() ? req.user.id : null;
       
       await storage.saveTransportData(userId, validatedData);
       
       res.status(200).json({ 
         success: true, 
-        message: "Transport data saved successfully" 
+        message: "Données de transport enregistrées avec succès" 
       });
     } catch (error) {
       console.error("Error saving transport data:", error);
       res.status(400).json({ 
         success: false, 
-        message: "Invalid transport data" 
+        message: "Données de transport invalides" 
       });
     }
   });
@@ -68,20 +67,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = eventSchema.parse(req.body);
       
-      // For this application, we'll store data for anonymous users (no auth required)
-      const userId = null;
+      // Get userId from authenticated session if available
+      const userId = req.isAuthenticated() ? req.user.id : null;
       
       await storage.saveEventData(userId, validatedData);
       
       res.status(200).json({ 
         success: true, 
-        message: "Event data saved successfully" 
+        message: "Données d'événement enregistrées avec succès" 
       });
     } catch (error) {
       console.error("Error saving event data:", error);
       res.status(400).json({ 
         success: false, 
-        message: "Invalid event data" 
+        message: "Données d'événement invalides" 
       });
     }
   });
@@ -91,20 +90,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = studyTripSchema.parse(req.body);
       
-      // For this application, we'll store data for anonymous users (no auth required)
-      const userId = null;
+      // Get userId from authenticated session if available
+      const userId = req.isAuthenticated() ? req.user.id : null;
       
       await storage.saveStudyTripData(userId, validatedData);
       
       res.status(200).json({ 
         success: true, 
-        message: "Study trip data saved successfully" 
+        message: "Données de voyage d'étude enregistrées avec succès" 
       });
     } catch (error) {
       console.error("Error saving study trip data:", error);
       res.status(400).json({ 
         success: false, 
-        message: "Invalid study trip data" 
+        message: "Données de voyage d'étude invalides" 
       });
     }
   });
@@ -112,24 +111,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API route for getting calculation results
   app.get("/api/results", async (req, res) => {
     try {
-      // For this application, we'll get data for anonymous users
-      const userId = null;
+      // Get userId from authenticated session if available
+      const userId = req.isAuthenticated() ? req.user.id : null;
       
       const results = await storage.getCalculationResult(userId);
       
       if (results) {
-        res.status(200).json(results);
+        res.status(200).json({
+          success: true,
+          results
+        });
       } else {
         res.status(404).json({ 
           success: false, 
-          message: "No calculation results found" 
+          message: "Aucun résultat de calcul trouvé" 
         });
       }
     } catch (error) {
       console.error("Error retrieving calculation results:", error);
       res.status(500).json({ 
         success: false, 
-        message: "Error retrieving calculation results" 
+        message: "Erreur lors de la récupération des résultats" 
       });
     }
   });
