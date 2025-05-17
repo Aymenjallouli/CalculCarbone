@@ -13,7 +13,11 @@ const depsToMove = [
   'typescript',
   'vite',
   'cross-env',
-  'tsx'
+  'tsx',
+  'autoprefixer',
+  'postcss',
+  'tailwindcss',
+  '@tailwindcss/typography'
 ];
 
 // Déplacer les dépendances

@@ -13,6 +13,18 @@ echo "Démarrage de la compilation..."
 vite build
 esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
 
+# Créer le répertoire public pour le serveur
+echo "Copie des fichiers statiques..."
+mkdir -p dist/public
+cp -r dist/assets dist/public/ || echo "Erreur lors de la copie des assets"
+cp client/index.html dist/public/ || echo "Erreur lors de la copie de index.html"
+
+# Lister le contenu des répertoires pour le débogage
+echo "Contenu du répertoire dist:"
+ls -la dist
+echo "Contenu du répertoire dist/public (s'il existe):"
+ls -la dist/public || echo "Le répertoire dist/public n'existe pas ou est vide"
+
 # Donner des instructions de débogage pour les erreurs de build
 if [ $? -ne 0 ]; then
   echo "Le build a échoué. Voici quelques informations de débogage :"
