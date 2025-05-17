@@ -68,25 +68,54 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  // En production, vérifier d'abord dans dist/public, puis dans server/public
-  let distPath = path.resolve(import.meta.dirname, "public");
+  // Liste des chemins possibles pour trouver les fichiers statiques
+  const possiblePaths = [
+    path.resolve(import.meta.dirname, "public"),
+    path.resolve(process.cwd(), "dist", "public"),
+    path.resolve(process.cwd(), "public"),
+  ];
   
-  // Si le chemin n'existe pas, essayer un chemin alternatif
-  if (!fs.existsSync(distPath)) {
-    distPath = path.resolve(process.cwd(), "dist", "public");
-    
-    // Si toujours pas, lancer une erreur
-    if (!fs.existsSync(distPath)) {
-      throw new Error(
-        `Could not find the build directory: ${distPath}, make sure to build the client first`,
-      );
+  // Trouver le premier chemin qui existe
+  let distPath = null;
+  for (const pathToCheck of possiblePaths) {
+    if (fs.existsSync(pathToCheck)) {
+      distPath = pathToCheck;
+      log(`Utilisation du répertoire statique: ${distPath}`, "static");
+      break;
     }
   }
+  
+  // Si aucun chemin n'existe, lancer une erreur
+  if (!distPath) {
+    log(`ERREUR: Impossible de trouver le répertoire de build. Chemins vérifiés: ${possiblePaths.join(", ")}`, "static");
+    throw new Error(
+      `Could not find the build directory. Checked: ${possiblePaths.join(", ")}`
+    );
+  }
 
+  // Lister le contenu du répertoire pour le débogage
+  try {
+    const files = fs.readdirSync(distPath);
+    log(`Contenu du répertoire statique (${distPath}): ${files.join(", ")}`, "static");
+    
+    // Vérifier si le répertoire assets existe
+    const assetsPath = path.join(distPath, "assets");
+    if (fs.existsSync(assetsPath)) {
+      const assetFiles = fs.readdirSync(assetsPath);
+      log(`Contenu du répertoire assets: ${assetFiles.join(", ")}`, "static");
+    } else {
+      log(`Le répertoire assets n'existe pas dans ${distPath}`, "static");
+    }
+  } catch (err) {
+    log(`Erreur lors de la lecture du répertoire: ${err}`, "static");
+  }
+
+  // Servir les fichiers statiques
   app.use(express.static(distPath));
 
   // fall through to index.html if the file doesn't exist
-  app.use("*", (_req, res) => {
+  app.use("*", (req, res) => {
+    log(`Serving index.html for path: ${req.originalUrl}`, "static");
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }

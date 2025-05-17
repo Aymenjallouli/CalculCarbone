@@ -17,7 +17,24 @@ esbuild server/index.ts --platform=node --packages=external --bundle --format=es
 echo "Copie des fichiers statiques..."
 mkdir -p dist/public
 cp -r dist/assets dist/public/ || echo "Erreur lors de la copie des assets"
-cp client/index.html dist/public/ || echo "Erreur lors de la copie de index.html"
+
+# Copiez l'index.html mais remplacez aussi le chemin du script pour qu'il pointe vers assets/index.js
+echo "Préparation de index.html..."
+if [ -f "client/index.html" ]; then
+  # Créer un index.html modifié
+  sed 's|src="/src/main.tsx"|src="/assets/index.js"|g' client/index.html > dist/public/index.html
+  # Vérifier si le chemin du script est correct
+  grep -q 'src="/assets/index.js"' dist/public/index.html || sed -i 's|src="./assets/index.js"|src="/assets/index.js"|g' dist/public/index.html
+  # Supprimer aussi le script replit
+  sed -i '/replit-dev-banner.js/d' dist/public/index.html
+else
+  echo "ERREUR: client/index.html n'existe pas!"
+fi
+
+# Copier aussi le fichier modele_transport.csv s'il existe
+if [ -f "client/public/modele_transport.csv" ]; then
+  cp client/public/modele_transport.csv dist/public/ || echo "Erreur lors de la copie de modele_transport.csv"
+fi
 
 # Lister le contenu des répertoires pour le débogage
 echo "Contenu du répertoire dist:"
