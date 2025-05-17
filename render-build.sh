@@ -1,22 +1,6 @@
 #!/bin/bash
 
-# # Créer le répertoire public pour le serveur
-echo "Copie des fichiers statiques..."
-mkdir -p dist/public
-
-# Vite aura généré des fichiers dans le répertoire dist
-# Nous allons utiliser ceux-là directement sans les modifier
-echo "Vérification des fichiers générés par Vite..."
-if [ -d "dist/assets" ]; then
-  echo "Répertoire dist/assets trouvé"
-else
-  echo "ATTENTION: Le répertoire dist/assets n'existe pas!"
-fi
-
-# Copier modele_transport.csv dans dist/public s'il existe
-if [ -f "client/public/modele_transport.csv" ]; then
-  cp client/public/modele_transport.csv dist/public/ || echo "Erreur lors de la copie de modele_transport.csv"
-fidances
+# Ajuster les dépendances pour le déploiement
 echo "Ajustement des dépendances pour le déploiement..."
 node adjust-dependencies.cjs
 
@@ -32,22 +16,16 @@ esbuild server/index.ts --platform=node --packages=external --bundle --format=es
 # Créer le répertoire public pour le serveur
 echo "Copie des fichiers statiques..."
 mkdir -p dist/public
-cp -r dist/assets dist/public/ || echo "Erreur lors de la copie des assets"
 
-# Copiez l'index.html mais remplacez aussi le chemin du script pour qu'il pointe vers assets/index.js
-echo "Préparation de index.html..."
-if [ -f "client/index.html" ]; then
-  # Créer un index.html modifié
-  sed 's|src="/src/main.tsx"|src="/assets/index.js"|g' client/index.html > dist/public/index.html
-  # Vérifier si le chemin du script est correct
-  grep -q 'src="/assets/index.js"' dist/public/index.html || sed -i 's|src="./assets/index.js"|src="/assets/index.js"|g' dist/public/index.html
-  # Supprimer aussi le script replit
-  sed -i '/replit-dev-banner.js/d' dist/public/index.html
+# Vérification des fichiers générés par Vite
+echo "Vérification des fichiers générés par Vite..."
+if [ -d "dist/assets" ]; then
+  echo "Répertoire dist/assets trouvé"
 else
-  echo "ERREUR: client/index.html n'existe pas!"
+  echo "ATTENTION: Le répertoire dist/assets n'existe pas!"
 fi
 
-# Copier aussi le fichier modele_transport.csv s'il existe
+# Copier modele_transport.csv dans dist/public s'il existe
 if [ -f "client/public/modele_transport.csv" ]; then
   cp client/public/modele_transport.csv dist/public/ || echo "Erreur lors de la copie de modele_transport.csv"
 fi
