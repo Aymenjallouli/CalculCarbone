@@ -20,6 +20,7 @@ export default function Navbar() {
     { name: "Accueil", path: "/" },
     { name: "Marchandises", path: "/merchandise" },
     { name: "Transport", path: "/transport" },
+    { name: "Restauration", path: "/restauration" },
     { name: "Événements", path: "/event" },
     { name: "Voyages d'étude", path: "/study-trip" },
     { name: "Résultats", path: "/results" },

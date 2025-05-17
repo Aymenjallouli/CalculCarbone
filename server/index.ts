@@ -1,10 +1,19 @@
 import express, { type Request, Response, NextFunction } from "express";
+import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: false, limit: '50mb' }));
+
+// Enable CORS for development and production
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? ["https://careerpulse.onrender.com", "https://www.careerpulse.onrender.com"] 
+    : ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5001"],
+  credentials: true,
+}));
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -56,12 +65,11 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
+  // Serve the app on the specified port or default to 5001 to avoid conflicts
   // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
+  const port = process.env.PORT || 5001;
   server.listen({
-    port,
+    port: Number(port),
     host: "0.0.0.0",
     reusePort: true,
   }, () => {

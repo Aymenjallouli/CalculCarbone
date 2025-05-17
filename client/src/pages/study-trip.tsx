@@ -11,11 +11,13 @@ import {
   STUDY_TRIP_ACCOMMODATION_TYPES,
   MEAL_TYPES 
 } from "@/lib/constants";
+import { calculateStudyTripEmissions } from "@/lib/calculations";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { NumericInput } from "@/components/ui/numeric-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { TooltipWrapper } from "@/components/ui/tooltip-wrapper";
@@ -57,7 +59,16 @@ export default function StudyTrip() {
     setIsSubmitting(true);
 
     try {
+      // Calculate emissions on the client side
+      const studyTripEmissions = calculateStudyTripEmissions(data);
+      console.log('DEBUG - Study Trip emissions calculated:', studyTripEmissions);
+      
+      // Save data to server
       await apiRequest("POST", "/api/study-trip", data);
+
+      // Store emissions in localStorage for the results page
+      localStorage.setItem("studyTripEmissions", JSON.stringify(studyTripEmissions));
+      localStorage.setItem("studyTripInput", JSON.stringify(data));
 
       toast({
         title: "Données de voyage d'étude enregistrées",
@@ -123,12 +134,11 @@ export default function StudyTrip() {
                         <TooltipWrapper content={TOOLTIPS.studyTrip.tripCount} infoIcon />
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          type="number"
-                          min={1}
+                        <NumericInput
+                          minValue={1}
                           placeholder="1"
-                          {...field}
-                          onChange={(e) => field.onChange(Number(e.target.value))}
+                          value={field.value}
+                          onChange={field.onChange}
                         />
                       </FormControl>
                       <FormDescription>Nombre de fois que ce voyage est effectué dans l'année</FormDescription>
@@ -147,12 +157,11 @@ export default function StudyTrip() {
                         <TooltipWrapper content={TOOLTIPS.studyTrip.distanceKm} infoIcon />
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          type="number"
-                          min={0}
+                        <NumericInput
+                          minValue={0}
                           placeholder="0"
-                          {...field}
-                          onChange={(e) => field.onChange(Number(e.target.value))}
+                          value={field.value}
+                          onChange={field.onChange}
                         />
                       </FormControl>
                       <FormDescription>Distance aller-retour totale</FormDescription>
@@ -171,12 +180,11 @@ export default function StudyTrip() {
                         <TooltipWrapper content={TOOLTIPS.studyTrip.duration} infoIcon />
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          type="number"
-                          min={1}
+                        <NumericInput
+                          minValue={1}
                           placeholder="1"
-                          {...field}
-                          onChange={(e) => field.onChange(Number(e.target.value))}
+                          value={field.value}
+                          onChange={field.onChange}
                         />
                       </FormControl>
                       <FormMessage />
@@ -194,12 +202,11 @@ export default function StudyTrip() {
                         <TooltipWrapper content={TOOLTIPS.studyTrip.participants} infoIcon />
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          type="number"
-                          min={1}
+                        <NumericInput
+                          minValue={1}
                           placeholder="20"
-                          {...field}
-                          onChange={(e) => field.onChange(Number(e.target.value))}
+                          value={field.value}
+                          onChange={field.onChange}
                         />
                       </FormControl>
                       <FormMessage />
@@ -258,12 +265,11 @@ export default function StudyTrip() {
                           <TooltipWrapper content={TOOLTIPS.studyTrip.vehicleCount} infoIcon />
                         </FormLabel>
                         <FormControl>
-                          <Input
-                            type="number"
-                            min={0}
+                          <NumericInput
+                            minValue={0}
                             placeholder="0"
-                            {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            value={field.value}
+                            onChange={field.onChange}
                           />
                         </FormControl>
                         <FormMessage />
@@ -322,12 +328,11 @@ export default function StudyTrip() {
                         <TooltipWrapper content={TOOLTIPS.studyTrip.nightsStay} infoIcon />
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          type="number"
-                          min={0}
+                        <NumericInput
+                          minValue={0}
                           placeholder="0"
-                          {...field}
-                          onChange={(e) => field.onChange(Number(e.target.value))}
+                          value={field.value}
+                          onChange={field.onChange}
                         />
                       </FormControl>
                       <FormMessage />
@@ -377,12 +382,11 @@ export default function StudyTrip() {
                         <TooltipWrapper content={TOOLTIPS.studyTrip.localTransportKm} infoIcon />
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          type="number"
-                          min={0}
+                        <NumericInput
+                          minValue={0}
                           placeholder="0"
-                          {...field}
-                          onChange={(e) => field.onChange(Number(e.target.value))}
+                          value={field.value}
+                          onChange={field.onChange}
                         />
                       </FormControl>
                       <FormMessage />
@@ -402,12 +406,11 @@ export default function StudyTrip() {
                         <TooltipWrapper content={TOOLTIPS.studyTrip.mealsCount} infoIcon />
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          type="number"
-                          min={0}
+                        <NumericInput
+                          minValue={0}
                           placeholder="0"
-                          {...field}
-                          onChange={(e) => field.onChange(Number(e.target.value))}
+                          value={field.value}
+                          onChange={field.onChange}
                         />
                       </FormControl>
                       <FormMessage />
@@ -455,7 +458,7 @@ export default function StudyTrip() {
               Précédent
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Traitement en cours..." : "Voir les résultats"}
+              {isSubmitting ? "Enregistrement..." : "Voir les résultats"}
             </Button>
           </div>
         </form>

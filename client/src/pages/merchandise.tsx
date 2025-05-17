@@ -12,7 +12,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { NumericInput } from "@/components/ui/numeric-input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TooltipWrapper } from "@/components/ui/tooltip-wrapper";
 import { MERCHANDISE_CATEGORIES, TOOLTIPS } from "@/lib/constants";
@@ -43,8 +43,15 @@ export default function Merchandise() {
   async function onSubmit(data: MerchandiseInput) {
     setIsSubmitting(true);
     try {
+      // Log input data for debugging
+      console.log('DEBUG - Merchandise form submitted with data:', JSON.stringify(data));
+      
+      // Utiliser les données réelles saisies par l'utilisateur
+      // au lieu de données fictives
+      
       // Calculate emissions on the client side
       const merchandiseEmissions = calculateMerchandiseEmissions(data);
+      console.log('DEBUG - Merchandise emissions calculated:', merchandiseEmissions);
       
       // Save data to server
       await apiRequest("POST", "/api/merchandise", data);
@@ -122,14 +129,11 @@ export default function Merchandise() {
                           </TooltipWrapper>
                         </FormLabel>
                         <FormControl>
-                          <Input
-                            type="number"
-                            min="0"
+                          <NumericInput
+                            minValue={0}
                             placeholder="0"
-                            {...field}
-                            onChange={(e) =>
-                              field.onChange(parseInt(e.target.value) || 0)
-                            }
+                            value={field.value}
+                            onChange={field.onChange}
                           />
                         </FormControl>
                         <FormDescription>

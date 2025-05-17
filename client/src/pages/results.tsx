@@ -6,7 +6,12 @@ import { Button } from "@/components/ui/button";
 import { EmissionResultsChart } from "@/components/EmissionResultsChart";
 import { Link } from "wouter";
 import { EmissionResult } from "@shared/schema";
-import { calculateMerchandiseEmissions, calculateTransportEmissions, calculateTotalEmissions } from "@/lib/calculations";
+import { 
+  calculateMerchandiseEmissions, 
+  calculateTransportEmissions, 
+  calculateRestaurantEmissions, 
+  calculateTotalEmissions 
+} from "@/lib/calculations";
 
 export default function Results() {
   const { toast } = useToast();
@@ -14,10 +19,14 @@ export default function Results() {
 
   // Fetch the saved results from the server
   const { data: serverResults, isLoading, error } = useQuery({
-    queryKey: ["/api/results"],
-    // Return null if 401 (results not found)
-    queryFn: ({ signal }) =>
-      fetch("/api/results", { signal, credentials: "include" })
+    queryKey: ["/api/results"],    // Return null if 401 (results not found)
+    queryFn: ({ signal }) => {
+      // Use the correct API URL based on environment (same logic as in queryClient.ts)
+      const apiUrl = import.meta.env.DEV 
+        ? `http://localhost:5001/api/results` // Development server
+        : "/api/results"; // Production (relative URLs work)
+      
+      return fetch(apiUrl, { signal, credentials: "include" })
         .then((res) => {
           if (!res.ok) {
             if (res.status === 401) return null;
@@ -28,7 +37,8 @@ export default function Results() {
         .catch((err) => {
           console.error("Error fetching results:", err);
           throw err;
-        }),
+        });
+    }
   });
 
   // Try to load results from localStorage if not available from server
@@ -44,13 +54,23 @@ export default function Results() {
         // Try to combine individual components if available
         const merchandiseEmissionsStr = localStorage.getItem("merchandiseEmissions");
         const transportEmissionsStr = localStorage.getItem("transportEmissions");
+        const restaurationEmissionsStr = localStorage.getItem("restaurationEmissions");
+        const eventEmissionsStr = localStorage.getItem("eventEmissions");
+        const studyTripEmissionsStr = localStorage.getItem("studyTripEmissions");
         
         if (merchandiseEmissionsStr && transportEmissionsStr) {
           const merchandiseEmissions = JSON.parse(merchandiseEmissionsStr);
           const transportEmissions = JSON.parse(transportEmissionsStr);
+          const restaurationEmissions = restaurationEmissionsStr ? JSON.parse(restaurationEmissionsStr) : undefined;
+          const eventEmissions = eventEmissionsStr ? JSON.parse(eventEmissionsStr) : undefined;
+          const studyTripEmissions = studyTripEmissionsStr ? JSON.parse(studyTripEmissionsStr) : undefined;
+          
           const totalEmissions = calculateTotalEmissions(
             merchandiseEmissions,
-            transportEmissions
+            transportEmissions,
+            eventEmissions,
+            studyTripEmissions,
+            restaurationEmissions
           );
           setLocalResults(totalEmissions);
           
@@ -100,10 +120,16 @@ export default function Results() {
         variant: "destructive",
       });
     }
-  }, [toast]);
-
-  // Use server results if available, otherwise use local results
-  const results = serverResults || localResults;
+  }, [toast]);  // Prioritize local results if they exist, otherwise use server results
+  // This ensures we use our reliable localStorage data if available
+  console.log('DEBUG - Server results:', JSON.stringify(serverResults));
+  console.log('DEBUG - Local results:', JSON.stringify(localResults));
+  
+  // Analyze server results structure
+  const serverResultsData = serverResults?.results || serverResults?.data?.results;
+  console.log('DEBUG - Server results data extracted:', JSON.stringify(serverResultsData));
+  
+  const results = localResults || serverResultsData || null;
 
   // Check if we have no data
   const noData = !isLoading && !results;
@@ -189,11 +215,11 @@ export default function Results() {
         </p>
       </div>
 
-      <div className="grid gap-8 mb-8">
-        <EmissionResultsChart data={results} />
-      </div>
-
-      <div className="grid gap-8 md:grid-cols-2 mb-8">
+      {results && (
+        <div className="grid gap-8 mb-8">
+          <EmissionResultsChart data={results} />
+        </div>
+      )}      <div className="grid gap-8 md:grid-cols-2 mb-8">
         <Card>
           <CardHeader>
             <CardTitle>Analyse des Marchandises</CardTitle>
@@ -206,7 +232,9 @@ export default function Results() {
               <div>
                 <h3 className="font-medium">Émissions totales</h3>
                 <p className="text-2xl font-bold text-primary">
-                  {results.merchandise.totalEmissions.toFixed(2)}{" "}
+                  {results?.merchandise?.totalEmissions 
+                    ? results.merchandise.totalEmissions.toFixed(2) 
+                    : "0.00"}{" "}
                   <span className="text-sm font-normal text-muted-foreground">
                     kg CO₂e
                   </span>
@@ -216,33 +244,39 @@ export default function Results() {
               <div>
                 <h3 className="font-medium mb-2">Répartition par catégorie</h3>
                 <ul className="space-y-2">
-                  {Object.entries(results.merchandise.breakdown).map(
-                    ([category, value]) => (
-                      <li
-                        key={category}
-                        className="flex justify-between items-center"
-                      >
-                        <span className="capitalize">
-                          {category === "paper"
-                            ? "Papier"
-                            : category === "notebook"
-                            ? "Cahiers"
-                            : category === "textbook"
-                            ? "Manuels scolaires"
-                            : category === "computer"
-                            ? "Ordinateurs"
-                            : category === "furniture"
-                            ? "Mobilier"
-                            : category}
-                        </span>
-                        <span className="font-medium">
-                          {value.toFixed(2)}{" "}
-                          <span className="text-xs text-muted-foreground">
-                            kg CO₂e
+                  {results?.merchandise?.breakdown ? (
+                    Object.entries(results.merchandise.breakdown).map(
+                      ([category, value]) => (
+                        <li
+                          key={category}
+                          className="flex justify-between items-center"
+                        >
+                          <span className="capitalize">
+                            {category === "paper"
+                              ? "Papier"
+                              : category === "notebook"
+                              ? "Cahiers"
+                              : category === "textbook"
+                              ? "Manuels scolaires"
+                              : category === "computer"
+                              ? "Ordinateurs"
+                              : category === "furniture"
+                              ? "Mobilier"
+                              : category}
                           </span>
-                        </span>
-                      </li>
+                          <span className="font-medium">
+                            {typeof value === 'number' 
+                              ? value.toFixed(2) 
+                              : "0.00"}{" "}
+                            <span className="text-xs text-muted-foreground">
+                              kg CO₂e
+                            </span>
+                          </span>
+                        </li>
+                      )
                     )
+                  ) : (
+                    <li>Aucune donnée disponible</li>
                   )}
                 </ul>
               </div>
@@ -262,7 +296,9 @@ export default function Results() {
               <div>
                 <h3 className="font-medium">Émissions totales</h3>
                 <p className="text-2xl font-bold text-secondary">
-                  {results.transport.totalEmissions.toFixed(2)}{" "}
+                  {results?.transport?.totalEmissions
+                    ? results.transport.totalEmissions.toFixed(2) 
+                    : "0.00"}{" "}
                   <span className="text-sm font-normal text-muted-foreground">
                     kg CO₂e
                   </span>
@@ -272,49 +308,240 @@ export default function Results() {
               <div>
                 <h3 className="font-medium mb-2">Répartition par mode</h3>
                 <ul className="space-y-2">
-                  {Object.entries(results.transport.breakdown).map(
-                    ([mode, value]) => (
-                      <li
-                        key={mode}
-                        className="flex justify-between items-center"
-                      >
-                        <span className="capitalize">
-                          {mode === "car"
-                            ? "Voiture"
-                            : mode === "bus"
-                            ? "Bus public"
-                            : mode === "train"
-                            ? "Train"
-                            : mode === "bicycle"
-                            ? "Vélo"
-                            : mode === "walking"
-                            ? "Marche"
-                            : mode === "schoolBus"
-                            ? "Bus scolaire"
-                            : mode}
-                        </span>
-                        <span className="font-medium">
-                          {value.toFixed(2)}{" "}
-                          <span className="text-xs text-muted-foreground">
-                            kg CO₂e
+                  {results?.transport?.breakdown ? (
+                    Object.entries(results.transport.breakdown).map(
+                      ([mode, value]) => (
+                        <li
+                          key={mode}
+                          className="flex justify-between items-center"
+                        >
+                          <span className="capitalize">
+                            {mode === "car"
+                              ? "Voiture"
+                              : mode === "bus"
+                              ? "Bus public"
+                              : mode === "train"
+                              ? "Train"
+                              : mode === "bicycle"
+                              ? "Vélo"
+                              : mode === "walking"
+                              ? "Marche"
+                              : mode === "schoolBus"
+                              ? "Bus scolaire"
+                              : mode}
                           </span>
-                        </span>
-                      </li>
+                          <span className="font-medium">
+                            {typeof value === 'number' 
+                              ? value.toFixed(2) 
+                              : "0.00"}{" "}
+                            <span className="text-xs text-muted-foreground">
+                              kg CO₂e
+                            </span>
+                          </span>
+                        </li>
+                      )
                     )
+                  ) : (
+                    <li>Aucune donnée disponible</li>
                   )}
                 </ul>
               </div>
             </div>
           </CardContent>
         </Card>
+      </div>      <div className="grid gap-8 md:grid-cols-3 mb-8">
+        {/* Restauration Card */}
+        {results?.restauration && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Analyse de la Restauration</CardTitle>
+              <CardDescription>
+                Bilan des émissions de CO₂ liées à l'alimentation
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-medium">Émissions totales</h3>
+                  <p className="text-2xl font-bold text-green-600">
+                    {results.restauration.totalEmissions.toFixed(2)}{" "}
+                    <span className="text-sm font-normal text-muted-foreground">
+                      kg CO₂e
+                    </span>
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="font-medium mb-2">Principales sources</h3>
+                  <ul className="space-y-2">
+                    {Object.entries(results.restauration.breakdown)
+                      .filter(([, value]) => typeof value === 'number' && value > 0)
+                      .sort((a, b) => Number(b[1]) - Number(a[1]))
+                      .slice(0, 5)
+                      .map(([category, value]) => (
+                        <li
+                          key={category}
+                          className="flex justify-between items-center"
+                        >                          <span className="capitalize">
+                            {category === "viandeRouge" ? "Viande rouge" :
+                             category === "viandePoulet" ? "Poulet" :
+                             category === "poisson" ? "Poisson" :
+                             category === "pates" ? "Pâtes" :
+                             category === "couscous" ? "Couscous" :
+                             category === "sauce" ? "Sauce" :
+                             category === "petitsPois" ? "Petits pois" :
+                             category === "haricot" ? "Haricot" :
+                             category === "fromage" ? "Fromage" :
+                             category === "beurre" ? "Beurre" :
+                             category === "yaourt" ? "Yaourt" :
+                             category === "lait" ? "Lait" :
+                             category === "confiture" ? "Confiture" :
+                             category === "oeuf" ? "Œufs" :
+                             category === "legume" ? "Légumes" :
+                             category === "fruit" ? "Fruits" :
+                             category === "cake" ? "Cake" :
+                             category === "chocolat" ? "Chocolat" :
+                             category === "pain" ? "Pain" :
+                             category === "pizza" ? "Pizza" :
+                             category === "cafe" ? "Café" :
+                             category === "distance" ? "Distance d'approvisionnement" :
+                             category === "allerRetour" ? "Aller-retour d'approvisionnement" :
+                             category === "foodWaste" ? "Déchets alimentaires" :
+                             category === "packagingWaste" ? "Déchets d'emballage" :
+                             category}
+                          </span>
+                          <span className="font-medium">
+                            {typeof value === 'number' ? value.toFixed(2) : "0.00"}{" "}
+                            <span className="text-xs text-muted-foreground">kg CO₂e</span>
+                          </span>
+                        </li>
+                      ))
+                    }
+                  </ul>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Événements Card */}
+        {results?.event && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Analyse des Événements</CardTitle>
+              <CardDescription>
+                Bilan des émissions de CO₂ liées aux événements scolaires
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-medium">Émissions totales</h3>
+                  <p className="text-2xl font-bold text-purple-600">
+                    {results.event.totalEmissions.toFixed(2)}{" "}
+                    <span className="text-sm font-normal text-muted-foreground">
+                      kg CO₂e
+                    </span>
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="font-medium mb-2">Principales sources</h3>
+                  <ul className="space-y-2">
+                    {Object.entries(results.event.breakdown)
+                      .filter(([, value]) => typeof value === 'number' && value > 0)
+                      .sort((a, b) => Number(b[1]) - Number(a[1]))
+                      .slice(0, 5)
+                      .map(([category, value]) => (
+                        <li
+                          key={category}
+                          className="flex justify-between items-center"
+                        >
+                          <span className="capitalize">
+                            {category === "venue" ? "Lieu de l'événement" :
+                             category === "marketingMaterials" ? "Matériels marketing" :
+                             category === "printedDocuments" ? "Documents imprimés" :
+                             category === "banners" ? "Bannières" :
+                             category === "meals" ? "Repas" :
+                             category === "beverages" ? "Boissons" :
+                             category === "waste" ? "Déchets" :
+                             category === "energy" ? "Énergie" :
+                             category}
+                          </span>
+                          <span className="font-medium">
+                            {typeof value === 'number' ? value.toFixed(2) : "0.00"}{" "}
+                            <span className="text-xs text-muted-foreground">kg CO₂e</span>
+                          </span>
+                        </li>
+                      ))
+                    }
+                  </ul>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Voyages d'Étude Card */}
+        {results?.studyTrip && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Analyse des Voyages d'Étude</CardTitle>
+              <CardDescription>
+                Bilan des émissions de CO₂ liées aux voyages scolaires
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-medium">Émissions totales</h3>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {results.studyTrip.totalEmissions.toFixed(2)}{" "}
+                    <span className="text-sm font-normal text-muted-foreground">
+                      kg CO₂e
+                    </span>
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="font-medium mb-2">Principales sources</h3>
+                  <ul className="space-y-2">
+                    {Object.entries(results.studyTrip.breakdown)
+                      .filter(([, value]) => typeof value === 'number' && value > 0)
+                      .sort((a, b) => Number(b[1]) - Number(a[1]))
+                      .slice(0, 5)
+                      .map(([category, value]) => (
+                        <li
+                          key={category}
+                          className="flex justify-between items-center"
+                        >
+                          <span className="capitalize">
+                            {category === "transport" ? "Transport" :
+                             category === "accommodation" ? "Hébergement" :
+                             category === "localTransport" ? "Transport local" :
+                             category === "meals" ? "Repas" :
+                             category}
+                          </span>
+                          <span className="font-medium">
+                            {typeof value === 'number' ? value.toFixed(2) : "0.00"}{" "}
+                            <span className="text-xs text-muted-foreground">kg CO₂e</span>
+                          </span>
+                        </li>
+                      ))
+                    }
+                  </ul>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <Card className="mb-8">
         <CardHeader>
           <CardTitle>Recommandations pour réduire votre empreinte</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid gap-6 md:grid-cols-2">
+        <CardContent>          <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-3">
               <h3 className="font-medium text-primary">Marchandises</h3>
               <ul className="space-y-2 list-disc list-inside text-muted-foreground">
@@ -336,16 +563,56 @@ export default function Results() {
                 <li>Réduisez les déplacements inutiles avec des outils numériques</li>
               </ul>
             </div>
+
+            <div className="space-y-3">              <h3 className="font-medium text-green-600">Restauration</h3>
+              <ul className="space-y-2 list-disc list-inside text-muted-foreground">
+                <li>Privilégiez les protéines végétales plutôt que la viande rouge</li>
+                <li>Augmentez la part des aliments d'origine végétale dans vos menus</li>
+                <li>Utilisez des produits locaux et de saison</li>
+                <li>Réduisez les emballages en privilégiant les grands conditionnements</li>
+                <li>Mettez en place un compost pour les déchets alimentaires</li>
+                <li>Favorisez les aliments issus de l'agriculture biologique</li>
+              </ul>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="font-medium text-purple-600">Événements</h3>
+              <ul className="space-y-2 list-disc list-inside text-muted-foreground">
+                <li>Organisez des événements virtuels quand c'est possible</li>
+                <li>Choisissez des lieux accessibles en transport en commun</li>
+                <li>Utilisez des supports de communication numériques</li>
+                <li>Proposez des options de repas à faible empreinte carbone</li>
+                <li>Mettez en place un tri sélectif efficace</li>
+              </ul>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="font-medium text-blue-600">Voyages d'étude</h3>
+              <ul className="space-y-2 list-disc list-inside text-muted-foreground">
+                <li>Privilégiez le train pour les moyennes distances</li>
+                <li>Optimisez le nombre de participants par véhicule</li>
+                <li>Choisissez des hébergements éco-responsables</li>
+                <li>Utilisez les transports en commun sur place</li>
+                <li>Compensez les émissions inévitables par des actions de reboisement</li>
+              </ul>
+            </div>
           </div>
         </CardContent>
-      </Card>
-
-      <div className="flex flex-wrap justify-center gap-4">
+      </Card>      <div className="flex flex-wrap justify-center gap-4">
         <Link href="/merchandise">
           <Button variant="outline">Modifier marchandises</Button>
-        </Link>
+        </Link>        
         <Link href="/transport">
           <Button variant="outline">Modifier transport</Button>
+        </Link>
+        <Link href="/restauration">
+          <Button variant="outline">Modifier restauration</Button>
+        </Link>
+        <Link href="/event">
+          <Button variant="outline">Modifier événements</Button>
+        </Link>
+        <Link href="/study-trip">
+          <Button variant="outline">Modifier voyages</Button>
         </Link>
         <Button
           onClick={() => window.print()}

@@ -64,7 +64,11 @@ export default function Home() {
                   transport utilisés par les élèves et le personnel.
                 </p>
                 <p>
-                  <strong>3.</strong> Obtenez une analyse détaillée de votre
+                  <strong>3.</strong> Saisissez les informations concernant la
+                  restauration dans votre établissement.
+                </p>
+                <p>
+                  <strong>4.</strong> Obtenez une analyse détaillée de votre
                   empreinte carbone avec des graphiques explicatifs.
                 </p>
               </div>
@@ -127,6 +131,94 @@ export default function Home() {
             </CardHeader>
             <CardFooter>
               <Link href="/transport">
+                <Button className="w-full">Commencer</Button>
+              </Link>
+            </CardFooter>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-12 w-12 text-green-600 mb-4"
+              >
+                <path d="M7 19a2 2 0 0 1-2-2" />
+                <path d="M17 19a2 2 0 0 0 2-2" />
+                <path d="M3 12h18" />
+                <path d="M2 8h20" />
+                <path d="M5 4h14c.6 0 1 .4 1 1v14c0 .6-.4 1-1 1H5c-.6 0-1-.4-1-1V5c0-.6.4-1 1-1Z" />
+                <path d="m10 12 5 3-5 3v-6Z" />
+              </svg>
+              <CardTitle>Restauration</CardTitle>
+              <CardDescription>
+                Calculez l'impact de l'alimentation et des déchets alimentaires.
+              </CardDescription>
+            </CardHeader>
+            <CardFooter>
+              <Link href="/restauration">
+                <Button className="w-full">Commencer</Button>
+              </Link>
+            </CardFooter>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-12 w-12 text-purple-600 mb-4"
+              >
+                <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2" />
+                <path d="M18 14h-8" />
+                <path d="M15 18h-5" />
+                <path d="M10 6h8v4h-8V6Z" />
+              </svg>
+              <CardTitle>Événements</CardTitle>
+              <CardDescription>
+                Évaluez l'impact des événements scolaires et des manifestations.
+              </CardDescription>
+            </CardHeader>
+            <CardFooter>
+              <Link href="/event">
+                <Button className="w-full">Commencer</Button>
+              </Link>
+            </CardFooter>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-12 w-12 text-blue-600 mb-4"
+              >
+                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+                <circle cx="12" cy="8" r="2" />
+                <path d="M12 19a7 7 0 1 0 0-14v16" />
+              </svg>
+              <CardTitle>Voyages d'étude</CardTitle>
+              <CardDescription>
+                Mesurez l'impact des voyages scolaires et des excursions.
+              </CardDescription>
+            </CardHeader>
+            <CardFooter>
+              <Link href="/study-trip">
                 <Button className="w-full">Commencer</Button>
               </Link>
             </CardFooter>

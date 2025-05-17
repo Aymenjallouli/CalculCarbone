@@ -5,7 +5,8 @@ import {
   merchandiseSchema, 
   transportSchema, 
   eventSchema, 
-  studyTripSchema 
+  studyTripSchema,
+  restaurationSchema
 } from "@shared/schema";
 import { setupAuth } from "./auth";
 
@@ -108,23 +109,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API route for saving restauration data
+  app.post("/api/restauration", async (req, res) => {
+    try {
+      const validatedData = restaurationSchema.parse(req.body);
+      
+      // Get userId from authenticated session if available
+      const userId = req.isAuthenticated() ? req.user.id : null;
+      
+      await storage.saveRestaurantData(userId, validatedData);
+      
+      res.status(200).json({ 
+        success: true, 
+        message: "Données de restauration enregistrées avec succès" 
+      });
+    } catch (error) {
+      console.error("Error saving restauration data:", error);
+      res.status(400).json({ 
+        success: false, 
+        message: "Données de restauration invalides" 
+      });
+    }
+  });
+
   // API route for getting calculation results
   app.get("/api/results", async (req, res) => {
     try {
       // Get userId from authenticated session if available
       const userId = req.isAuthenticated() ? req.user.id : null;
+      console.log('DEBUG - API /results - User ID:', userId);
       
       const results = await storage.getCalculationResult(userId);
+      console.log('DEBUG - API /results - Results returned:', JSON.stringify(results));
       
       if (results) {
-        res.status(200).json({
+        const response = {
           success: true,
           results
-        });
+        };
+        console.log('DEBUG - API /results - Sending success response');
+        res.status(200).json(response);
       } else {
-        res.status(404).json({ 
+        console.log('DEBUG - API /results - No results found');
+        res.status(200).json({ 
           success: false, 
-          message: "Aucun résultat de calcul trouvé" 
+          message: "Aucun résultat de calcul trouvé",
+          results: null
         });
       }
     } catch (error) {

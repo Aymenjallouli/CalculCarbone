@@ -152,6 +152,52 @@ export const eventSchema = z.object({
 // Type for event inputs
 export type EventInput = z.infer<typeof eventSchema>;
 
+// Schema for restauration inputs
+export const restaurationSchema = z.object({
+  // Viandes
+  viandeRouge: z.number().min(0).default(0),
+  viandePoulet: z.number().min(0).default(0),
+  poisson: z.number().min(0).default(0),
+  
+  // Aliments principaux
+  pates: z.number().min(0).default(0),
+  couscous: z.number().min(0).default(0),
+  sauce: z.number().min(0).default(0),
+  petitsPois: z.number().min(0).default(0),
+  haricot: z.number().min(0).default(0),
+  
+  // Produits laitiers et céréales
+  fromage: z.number().min(0).default(0),
+  beurre: z.number().min(0).default(0),
+  yaourt: z.number().min(0).default(0),
+  lait: z.number().min(0).default(0),
+  
+  // Autres aliments
+  confiture: z.number().min(0).default(0),
+  oeuf: z.number().min(0).default(0),
+  legume: z.number().min(0).default(0),
+  fruit: z.number().min(0).default(0),
+  
+  // Snacks et desserts
+  cake: z.number().min(0).default(0),
+  chocolat: z.number().min(0).default(0),
+  pain: z.number().min(0).default(0),
+  pizza: z.number().min(0).default(0),
+  cafe: z.number().min(0).default(0),
+  
+  // Logistique
+  distance: z.number().min(0).default(0),
+  allerRetour: z.number().min(0).default(0),
+  
+  // Déchets (conservés comme demandé)
+  foodWasteKg: z.number().min(0).default(0),
+  packagingWasteKg: z.number().min(0).default(0),
+  recyclingPercentage: z.number().min(0).max(100).default(0),
+});
+
+// Type for restauration inputs
+export type RestaurationType = z.infer<typeof restaurationSchema>;
+
 // Schema for study trips (Voyage d'Etude)
 export const studyTripSchema = z.object({
   // Trip details
@@ -197,6 +243,10 @@ export interface EmissionResult {
     totalEmissions: number;
     breakdown: Record<string, number>;
   };
+  restauration?: {
+    totalEmissions: number;
+    breakdown: Record<string, number>;
+  };
   event?: {
     totalEmissions: number;
     breakdown: Record<string, number>;
@@ -214,6 +264,7 @@ export const calculationResults = pgTable("calculation_results", {
   userId: integer("user_id").references(() => users.id),
   merchandiseInput: json("merchandise_input").$type<MerchandiseInput>(),
   transportInput: json("transport_input").$type<TransportInput>(),
+  restaurationInput: json("restauration_input").$type<RestaurationType | null>(),
   eventInput: json("event_input").$type<EventInput | null>(),
   studyTripInput: json("study_trip_input").$type<StudyTripInput | null>(),
   results: json("results").$type<EmissionResult>(),

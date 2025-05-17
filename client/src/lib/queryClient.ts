@@ -12,7 +12,12 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const res = await fetch(url, {
+  // Make sure we're using the correct server URL for API calls
+  const apiUrl = import.meta.env.DEV 
+    ? `http://localhost:5001${url}` // Development server
+    : url; // Production (relative URLs work)
+    
+  const res = await fetch(apiUrl, {
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
     body: data ? JSON.stringify(data) : undefined,

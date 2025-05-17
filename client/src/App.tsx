@@ -13,6 +13,7 @@ import Event from "@/pages/event";
 import StudyTrip from "@/pages/study-trip";
 import AuthPage from "@/pages/auth-page";
 import History from "@/pages/history";
+import Restauration from "@/pages/restauration";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { EPTProverdyBanner } from "@/components/layout/EPTProverdyBanner";
 import { AuthProvider } from "@/hooks/use-auth";
@@ -26,6 +27,7 @@ function Router() {
       <Route path="/transport" component={Transport} />
       <Route path="/event" component={Event} />
       <Route path="/study-trip" component={StudyTrip} />
+      <Route path="/restauration" component={Restauration} />
       <Route path="/results" component={Results} />
       <Route path="/auth" component={AuthPage} />
       <ProtectedRoute path="/history" component={History} />

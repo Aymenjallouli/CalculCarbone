@@ -5,6 +5,7 @@ import {
   TransportInput, 
   EventInput,
   StudyTripInput,
+  RestaurationType,
   EmissionResult,
   CalculationResult,
   InsertCalculationResult
@@ -14,6 +15,7 @@ import {
   calculateTransportEmissions,
   calculateEventEmissions,
   calculateStudyTripEmissions,
+  calculateRestaurantEmissions,
   calculateTotalEmissions 
 } from "../client/src/lib/calculations";
 
@@ -28,6 +30,7 @@ export interface IStorage {
   // Carbon calculator methods
   saveMerchandiseData(userId: number | null, data: MerchandiseInput): Promise<void>;
   saveTransportData(userId: number | null, data: TransportInput): Promise<void>;
+  saveRestaurantData(userId: number | null, data: RestaurationType): Promise<void>;
   saveEventData(userId: number | null, data: EventInput): Promise<void>;
   saveStudyTripData(userId: number | null, data: StudyTripInput): Promise<void>;
   getCalculationResult(userId: number | null): Promise<EmissionResult | null>;
@@ -41,12 +44,14 @@ export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private merchandiseData: Map<number, MerchandiseInput>;
   private transportData: Map<number, TransportInput>;
+  private restaurantData: Map<number, RestaurationType>;
   private eventData: Map<number, EventInput>;
   private studyTripData: Map<number, StudyTripInput>;
   private results: Map<number, CalculationResult>;
   private sessionData: Map<string, {
     merchandise?: MerchandiseInput;
     transport?: TransportInput;
+    restaurant?: RestaurationType;
     event?: EventInput;
     studyTrip?: StudyTripInput;
   }>;
@@ -57,6 +62,7 @@ export class MemStorage implements IStorage {
     this.users = new Map();
     this.merchandiseData = new Map();
     this.transportData = new Map();
+    this.restaurantData = new Map();
     this.eventData = new Map();
     this.studyTripData = new Map();
     this.results = new Map();
@@ -89,10 +95,12 @@ export class MemStorage implements IStorage {
 
   async saveMerchandiseData(userId: number | null, data: MerchandiseInput): Promise<void> {
     const sessionId = this.getSessionId(userId);
+    console.log('DEBUG - saveMerchandiseData - User ID:', userId, 'Session ID:', sessionId);
     
     if (userId) {
       // Store for authenticated user
       this.merchandiseData.set(userId, data);
+      console.log('DEBUG - Merchandise data saved for authenticated user');
     } else {
       // Store in session for anonymous user
       const sessionData = this.sessionData.get(sessionId) || {};
@@ -100,6 +108,8 @@ export class MemStorage implements IStorage {
         ...sessionData,
         merchandise: data
       });
+      console.log('DEBUG - Merchandise data saved in session', 
+                 'Session data size:', Object.keys(this.sessionData).length);
     }
     
     // If we have both merchandise and transport data, calculate and save results
@@ -108,10 +118,12 @@ export class MemStorage implements IStorage {
 
   async saveTransportData(userId: number | null, data: TransportInput): Promise<void> {
     const sessionId = this.getSessionId(userId);
+    console.log('DEBUG - saveTransportData - User ID:', userId, 'Session ID:', sessionId);
     
     if (userId) {
       // Store for authenticated user
       this.transportData.set(userId, data);
+      console.log('DEBUG - Transport data saved for authenticated user');
     } else {
       // Store in session for anonymous user
       const sessionData = this.sessionData.get(sessionId) || {};
@@ -119,6 +131,34 @@ export class MemStorage implements IStorage {
         ...sessionData,
         transport: data
       });
+      console.log('DEBUG - Transport data saved in session',
+                 'Session data size:', Object.keys(this.sessionData).length,
+                 'Session now has merchandise:', sessionData.merchandise ? 'Yes' : 'No');
+    }
+    
+    // If we have both merchandise and transport data, calculate and save results
+    await this.calculateAndSaveResults(userId);
+  }
+  
+  async saveRestaurantData(userId: number | null, data: RestaurationType): Promise<void> {
+    const sessionId = this.getSessionId(userId);
+    console.log('DEBUG - saveRestaurantData - User ID:', userId, 'Session ID:', sessionId);
+    
+    if (userId) {
+      // Store for authenticated user
+      this.restaurantData.set(userId, data);
+      console.log('DEBUG - Restaurant data saved for authenticated user');
+    } else {
+      // Store in session for anonymous user
+      const sessionData = this.sessionData.get(sessionId) || {};
+      this.sessionData.set(sessionId, {
+        ...sessionData,
+        restaurant: data
+      });
+      console.log('DEBUG - Restaurant data saved in session',
+                 'Session data size:', Object.keys(this.sessionData).length,
+                 'Session now has merchandise:', sessionData.merchandise ? 'Yes' : 'No',
+                 'Session now has transport:', sessionData.transport ? 'Yes' : 'No');
     }
     
     // If we have both merchandise and transport data, calculate and save results
@@ -168,6 +208,7 @@ export class MemStorage implements IStorage {
     
     let merchandiseData: MerchandiseInput | undefined;
     let transportData: TransportInput | undefined;
+    let restaurantData: RestaurationType | undefined;
     let eventData: EventInput | undefined;
     let studyTripData: StudyTripInput | undefined;
     
@@ -175,6 +216,7 @@ export class MemStorage implements IStorage {
       // Get data for authenticated user
       merchandiseData = this.merchandiseData.get(userId);
       transportData = this.transportData.get(userId);
+      restaurantData = this.restaurantData.get(userId);
       eventData = this.eventData.get(userId);
       studyTripData = this.studyTripData.get(userId);
     } else {
@@ -183,6 +225,7 @@ export class MemStorage implements IStorage {
       if (sessionData) {
         merchandiseData = sessionData.merchandise;
         transportData = sessionData.transport;
+        restaurantData = sessionData.restaurant;
         eventData = sessionData.event;
         studyTripData = sessionData.studyTrip;
       }
@@ -192,6 +235,9 @@ export class MemStorage implements IStorage {
     if (merchandiseData && transportData) {
       const merchandiseEmissions = calculateMerchandiseEmissions(merchandiseData);
       const transportEmissions = calculateTransportEmissions(transportData);
+      
+      // Calculate optional restaurant emissions if available
+      const restaurantEmissions = restaurantData ? calculateRestaurantEmissions(restaurantData) : undefined;
       
       // Calculate optional event emissions if available
       const eventEmissions = eventData ? calculateEventEmissions(eventData) : undefined;
@@ -204,7 +250,8 @@ export class MemStorage implements IStorage {
         merchandiseEmissions, 
         transportEmissions, 
         eventEmissions, 
-        studyTripEmissions
+        studyTripEmissions,
+        restaurantEmissions
       );
       
       // Save the calculation result
@@ -212,6 +259,7 @@ export class MemStorage implements IStorage {
         userId: userId !== null ? userId : null,
         merchandiseInput: merchandiseData,
         transportInput: transportData,
+        restaurationInput: restaurantData || null,
         eventInput: eventData || null,
         studyTripInput: studyTripData || null,
         results: totalEmissions,
@@ -222,6 +270,7 @@ export class MemStorage implements IStorage {
 
   async getCalculationResult(userId: number | null): Promise<EmissionResult | null> {
     const sessionId = this.getSessionId(userId);
+    console.log('DEBUG - getCalculationResult - User ID:', userId, 'Session ID:', sessionId);
     
     // For authenticated users
     if (userId) {
@@ -230,16 +279,28 @@ export class MemStorage implements IStorage {
         result => result.userId === userId
       );
       
+      console.log('DEBUG - Authenticated user result found:', userResult ? 'Yes' : 'No');
+      
       if (userResult) {
         return userResult.results;
       }
     } else {
       // For anonymous users, get data from session
       const sessionData = this.sessionData.get(sessionId);
+      console.log('DEBUG - Session data found:', sessionData ? 'Yes' : 'No', 
+                  'Has merchandise:', sessionData?.merchandise ? 'Yes' : 'No',
+                  'Has transport:', sessionData?.transport ? 'Yes' : 'No',
+                  'Has restaurant:', sessionData?.restaurant ? 'Yes' : 'No');
       
       if (sessionData?.merchandise && sessionData?.transport) {
+        console.log('DEBUG - Recalculating emissions from session data');
         const merchandiseEmissions = calculateMerchandiseEmissions(sessionData.merchandise);
         const transportEmissions = calculateTransportEmissions(sessionData.transport);
+        
+        // Calculate optional restaurant emissions if available
+        const restaurantEmissions = sessionData.restaurant
+          ? calculateRestaurantEmissions(sessionData.restaurant) 
+          : undefined;
         
         // Calculate optional event emissions if available
         const eventEmissions = sessionData.event
@@ -251,12 +312,16 @@ export class MemStorage implements IStorage {
           ? calculateStudyTripEmissions(sessionData.studyTrip)
           : undefined;
           
-        return calculateTotalEmissions(
+        const results = calculateTotalEmissions(
           merchandiseEmissions, 
           transportEmissions, 
           eventEmissions, 
-          studyTripEmissions
+          studyTripEmissions,
+          restaurantEmissions
         );
+        
+        console.log('DEBUG - Calculated total emissions from session:', results.totalEmissions);
+        return results;
       }
     }
     
@@ -265,7 +330,27 @@ export class MemStorage implements IStorage {
 
   async saveCalculationResult(data: InsertCalculationResult): Promise<CalculationResult> {
     const id = this.resultId++;
-    const result: CalculationResult = { ...data, id };
+    // Ensure results and userId are provided and not null/undefined
+    const sanitizedData = {
+      ...data,
+      userId: data.userId ?? null,
+      results: data.results ?? {
+        merchandise: { totalEmissions: 0, breakdown: {} },
+        transport: { totalEmissions: 0, breakdown: {} },
+        totalEmissions: 0
+      },
+      merchandiseInput: data.merchandiseInput ?? null,
+      transportInput: data.transportInput ?? null,
+      eventInput: data.eventInput ?? null,
+      studyTripInput: data.studyTripInput ?? null,
+      createdAt: data.createdAt ?? new Date().toISOString()
+    };
+    
+    // Fix for the type issue: cast to proper type
+    const result = {
+      ...sanitizedData,
+      id
+    } as CalculationResult;
     this.results.set(id, result);
     return result;
   }

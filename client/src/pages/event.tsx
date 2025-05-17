@@ -6,11 +6,13 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { EventInput, eventSchema } from "@shared/schema";
 import { TOOLTIPS, MEAL_TYPES } from "@/lib/constants";
+import { calculateEventEmissions } from "@/lib/calculations";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { NumericInput } from "@/components/ui/numeric-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
@@ -50,7 +52,16 @@ export default function Event() {
     setIsSubmitting(true);
 
     try {
+      // Calculate emissions on the client side
+      const eventEmissions = calculateEventEmissions(data);
+      console.log('DEBUG - Event emissions calculated:', eventEmissions);
+      
+      // Save data to server
       await apiRequest("POST", "/api/event", data);
+
+      // Store emissions in localStorage for the results page
+      localStorage.setItem("eventEmissions", JSON.stringify(eventEmissions));
+      localStorage.setItem("eventInput", JSON.stringify(data));
 
       toast({
         title: "Données d'événement enregistrées",
@@ -116,12 +127,11 @@ export default function Event() {
                         <TooltipWrapper content={TOOLTIPS.event.attendees} infoIcon />
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          type="number"
-                          min={1}
+                        <NumericInput
+                          minValue={1}
                           placeholder="100"
-                          {...field}
-                          onChange={(e) => field.onChange(Number(e.target.value))}
+                          value={field.value}
+                          onChange={field.onChange}
                         />
                       </FormControl>
                       <FormMessage />
@@ -139,13 +149,11 @@ export default function Event() {
                         <TooltipWrapper content={TOOLTIPS.event.duration} infoIcon />
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          type="number"
-                          min={0.5}
-                          step={0.5}
+                        <NumericInput
+                          minValue={0.5}
                           placeholder="1"
-                          {...field}
-                          onChange={(e) => field.onChange(Number(e.target.value))}
+                          value={field.value}
+                          onChange={field.onChange}
                         />
                       </FormControl>
                       <FormDescription>Peut être un nombre décimal (ex: 0.5 pour une demi-journée)</FormDescription>
@@ -164,12 +172,11 @@ export default function Event() {
                         <TooltipWrapper content={TOOLTIPS.event.venueSizeM2} infoIcon />
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          type="number"
-                          min={0}
+                        <NumericInput
+                          minValue={0}
                           placeholder="200"
-                          {...field}
-                          onChange={(e) => field.onChange(Number(e.target.value))}
+                          value={field.value}
+                          onChange={field.onChange}
                         />
                       </FormControl>
                       <FormMessage />
@@ -437,7 +444,7 @@ export default function Event() {
             <Button
               type="button" 
               variant="outline"
-              onClick={() => setLocation("/transport")}
+              onClick={() => setLocation("/restauration")}
             >
               Précédent
             </Button>
