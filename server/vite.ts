@@ -68,54 +68,48 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  // Liste des chemins possibles pour trouver les fichiers statiques
-  const possiblePaths = [
-    path.resolve(import.meta.dirname, "public"),
-    path.resolve(process.cwd(), "dist", "public"),
-    path.resolve(process.cwd(), "public"),
+  // En production, on a besoin de servir les fichiers générés par Vite
+  const staticPaths = [
+    path.resolve(process.cwd(), "dist"), // Fichiers générés par Vite (index.html, assets/*)
+    path.resolve(process.cwd(), "dist", "public") // Fichiers supplémentaires (modele_transport.csv)
   ];
   
-  // Trouver le premier chemin qui existe
-  let distPath = null;
-  for (const pathToCheck of possiblePaths) {
-    if (fs.existsSync(pathToCheck)) {
-      distPath = pathToCheck;
-      log(`Utilisation du répertoire statique: ${distPath}`, "static");
-      break;
-    }
-  }
+  // Journalisation des chemins
+  log(`Chemins statiques configurés: ${staticPaths.join(", ")}`, "static");
   
-  // Si aucun chemin n'existe, lancer une erreur
-  if (!distPath) {
-    log(`ERREUR: Impossible de trouver le répertoire de build. Chemins vérifiés: ${possiblePaths.join(", ")}`, "static");
-    throw new Error(
-      `Could not find the build directory. Checked: ${possiblePaths.join(", ")}`
-    );
-  }
-
-  // Lister le contenu du répertoire pour le débogage
-  try {
-    const files = fs.readdirSync(distPath);
-    log(`Contenu du répertoire statique (${distPath}): ${files.join(", ")}`, "static");
-    
-    // Vérifier si le répertoire assets existe
-    const assetsPath = path.join(distPath, "assets");
-    if (fs.existsSync(assetsPath)) {
-      const assetFiles = fs.readdirSync(assetsPath);
-      log(`Contenu du répertoire assets: ${assetFiles.join(", ")}`, "static");
+  // Vérification des répertoires
+  staticPaths.forEach((staticPath) => {
+    if (fs.existsSync(staticPath)) {
+      log(`Le répertoire statique existe: ${staticPath}`, "static");
+      try {
+        const files = fs.readdirSync(staticPath);
+        log(`Contenu de ${staticPath}: ${files.join(", ")}`, "static");
+      } catch (err) {
+        log(`Erreur lors de la lecture du répertoire ${staticPath}: ${err}`, "static");
+      }
     } else {
-      log(`Le répertoire assets n'existe pas dans ${distPath}`, "static");
+      log(`Le répertoire statique n'existe pas: ${staticPath}`, "static");
     }
-  } catch (err) {
-    log(`Erreur lors de la lecture du répertoire: ${err}`, "static");
-  }
+  });
 
-  // Servir les fichiers statiques
-  app.use(express.static(distPath));
+  // Servir les fichiers statiques depuis tous les chemins configurés
+  staticPaths.forEach((staticPath) => {
+    if (fs.existsSync(staticPath)) {
+      app.use(express.static(staticPath));
+      log(`Serving static files from: ${staticPath}`, "static");
+    }
+  });
 
-  // fall through to index.html if the file doesn't exist
+  // Fallback to index.html
   app.use("*", (req, res) => {
-    log(`Serving index.html for path: ${req.originalUrl}`, "static");
-    res.sendFile(path.resolve(distPath, "index.html"));
+    const indexPath = path.resolve(process.cwd(), "dist", "index.html");
+    log(`Serving index.html for path: ${req.originalUrl} from ${indexPath}`, "static");
+    
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      log(`ERREUR: index.html introuvable à ${indexPath}`, "static");
+      res.status(404).send("index.html not found");
+    }
   });
 }
