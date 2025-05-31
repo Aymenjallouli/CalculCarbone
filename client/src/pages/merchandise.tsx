@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
@@ -19,47 +19,58 @@ import { MERCHANDISE_CATEGORIES, TOOLTIPS } from "@/lib/constants";
 import { merchandiseSchema, type MerchandiseInput } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
-import { 
+import { useFormData } from "@/context/FormContext";
+import {
   calculateMerchandiseEmissions,
-  calculateTotalEmissions 
+  calculateTotalEmissions,
 } from "@/lib/calculations";
 
 export default function Merchandise() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { formData, updateFormData } = useFormData();
 
   const form = useForm<MerchandiseInput>({
     resolver: zodResolver(merchandiseSchema),
     defaultValues: {
-      paper: 0,
-      notebook: 0,
-      textbook: 0,
-      computer: 0,
-      furniture: 0,
+      ...(formData.merchandise as MerchandiseInput || {
+        paper: 0,
+        notebook: 0,
+        textbook: 0,
+        computer: 0,
+        furniture: 0,
+      }),
     },
   });
+
+  // Mettre à jour le contexte lorsque le formulaire change
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      updateFormData("merchandise", value);
+    });
+    return () => subscription.unsubscribe();
+  }, [form, updateFormData]);
 
   async function onSubmit(data: MerchandiseInput) {
     setIsSubmitting(true);
     try {
       // Log input data for debugging
-      console.log('DEBUG - Merchandise form submitted with data:', JSON.stringify(data));
-      
-      // Utiliser les données réelles saisies par l'utilisateur
-      // au lieu de données fictives
-      
+      console.log(
+        "DEBUG - Merchandise form submitted with data:",
+        JSON.stringify(data)
+      );
+
       // Calculate emissions on the client side
       const merchandiseEmissions = calculateMerchandiseEmissions(data);
-      console.log('DEBUG - Merchandise emissions calculated:', merchandiseEmissions);
-      
+      console.log("DEBUG - Merchandise emissions calculated:", merchandiseEmissions);
+
       // Save data to server
       await apiRequest("POST", "/api/merchandise", data);
 
       // Store emissions in localStorage for the results page
       localStorage.setItem("merchandiseEmissions", JSON.stringify(merchandiseEmissions));
-      localStorage.setItem("merchandiseInput", JSON.stringify(data));
-      
+
       // Check if we already have transport data
       const storedTransportEmissions = localStorage.getItem("transportEmissions");
       if (storedTransportEmissions) {
@@ -173,10 +184,12 @@ export default function Merchandise() {
       </Card>
 
       <div className="mt-8 bg-muted/40 p-6 rounded-lg">
-        <h3 className="text-lg font-medium mb-3">À propos des calculs d'émissions</h3>
+        <h3 className="text-lg font-medium mb-3">
+          À propos des calculs d'émissions
+        </h3>
         <p className="text-muted-foreground mb-3">
-          Les calculs d'émissions de CO₂ sont basés sur les facteurs d'émission moyens
-          pour chaque type de matériel. Ces estimations prennent en compte :
+          Les calculs d'émissions de CO₂ sont basés sur les facteurs d'émission
+          moyens pour chaque type de matériel. Ces estimations prennent en compte :
         </p>
         <ul className="list-disc list-inside text-muted-foreground space-y-1">
           <li>Le cycle de production complet des matériaux</li>

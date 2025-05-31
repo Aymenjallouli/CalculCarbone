@@ -18,6 +18,7 @@ import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { EPTProverdyBanner } from "@/components/layout/EPTProverdyBanner";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
+import { FormProvider } from "@/context/FormContext";
 
 function Router() {
   return (
@@ -40,20 +41,22 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <ThemeProvider>
-          <TooltipProvider>
-            <div className="min-h-screen flex flex-col relative overflow-hidden">
-              <Navbar />
-              <main className="flex-1 container mx-auto px-4 py-6">
-                {/* Bannière EPT-Proverdy en haut de chaque page */}
-                <EPTProverdyBanner />
-                
-                <Router />
-              </main>
-            </div>
-            <Toaster />
-          </TooltipProvider>
-        </ThemeProvider>
+        <FormProvider>
+          <ThemeProvider>
+            <TooltipProvider>
+              <div className="min-h-screen flex flex-col relative overflow-hidden">
+                <Navbar />
+                <main className="flex-1 container mx-auto px-4 py-6">
+                  {/* Bannière EPT-Proverdy en haut de chaque page */}
+                  <EPTProverdyBanner />
+                  
+                  <Router />
+                </main>
+              </div>
+              <Toaster />
+            </TooltipProvider>
+          </ThemeProvider>
+        </FormProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

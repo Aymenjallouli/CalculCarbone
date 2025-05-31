@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
+import { useFormData } from "@/context/FormContext";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -18,7 +20,6 @@ import { TooltipWrapper } from "@/components/ui/tooltip-wrapper";
 import { RESTAURATION_CATEGORIES, TOOLTIPS } from "@/lib/constants";
 import { restaurationSchema, type RestaurationType } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
-import { useLocation } from "wouter";
 import { 
   calculateRestaurantEmissions,
   calculateTotalEmissions 
@@ -28,50 +29,47 @@ export default function Restauration() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { formData, updateFormData } = useFormData();
+
   const form = useForm<RestaurationType>({
     resolver: zodResolver(restaurationSchema),
-    defaultValues: {
-      // Viandes
+    defaultValues: formData.restauration as RestaurationType || {
       viandeRouge: 0,
       viandePoulet: 0,
       poisson: 0,
-      
-      // Aliments principaux
       pates: 0,
       couscous: 0,
       sauce: 0,
       petitsPois: 0,
       haricot: 0,
-      
-      // Produits laitiers et céréales
       fromage: 0,
       beurre: 0,
       yaourt: 0,
       lait: 0,
-      
-      // Autres aliments
       confiture: 0,
       oeuf: 0,
       legume: 0,
       fruit: 0,
-      
-      // Snacks et desserts
       cake: 0,
       chocolat: 0,
       pain: 0,
       pizza: 0,
       cafe: 0,
-      
-      // Logistique
       distance: 0,
       allerRetour: 0,
-      
-      // Déchets (conservés comme demandé)
       foodWasteKg: 0,
       packagingWasteKg: 0,
       recyclingPercentage: 0,
     },
   });
+
+  // Mettre à jour le contexte lorsque le formulaire change
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      updateFormData('restauration', value);
+    });
+    return () => subscription.unsubscribe();
+  }, [form, updateFormData]);
 
   async function onSubmit(data: RestaurationType) {
     setIsSubmitting(true);

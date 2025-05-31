@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocation } from "wouter";
@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { EventInput, eventSchema } from "@shared/schema";
 import { TOOLTIPS, MEAL_TYPES } from "@/lib/constants";
 import { calculateEventEmissions } from "@/lib/calculations";
+import { useFormData } from "@/context/FormContext";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,22 +24,25 @@ export default function Event() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const { formData, updateFormData } = useFormData();
 
   // Define default values to initialize the form
   const defaultValues: EventInput = {
-    name: "",
-    attendees: 1,
-    duration: 1,
-    venueSizeM2: 0,
-    marketingMaterials: 0,
-    printedDocuments: 0,
-    banners: 0,
-    mealsCount: 0,
-    mealType: "standard",
-    beverages: 0,
-    wasteGenerated: 0,
-    recyclingPercentage: 0,
-    energyConsumption: 0,
+    ...(formData.event as EventInput || {
+      name: "",
+      attendees: 1,
+      duration: 1,
+      venueSizeM2: 0,
+      marketingMaterials: 0,
+      printedDocuments: 0,
+      banners: 0,
+      mealsCount: 0,
+      mealType: "standard",
+      beverages: 0,
+      wasteGenerated: 0,
+      recyclingPercentage: 0,
+      energyConsumption: 0,
+    })
   };
 
   // Initialize form with validation schema
@@ -46,6 +50,14 @@ export default function Event() {
     resolver: zodResolver(eventSchema),
     defaultValues,
   });
+
+  // Mettre à jour le contexte lorsque le formulaire change
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      updateFormData('event', value);
+    });
+    return () => subscription.unsubscribe();
+  }, [form, updateFormData]);
 
   // Handle form submission
   async function onSubmit(data: EventInput) {

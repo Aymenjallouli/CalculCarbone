@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useLocation } from "wouter";
-import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { StudyTripInput, studyTripSchema } from "@shared/schema";
+import { useLocation } from "wouter";
+import { useFormData } from "@/context/FormContext";
+import { apiRequest } from "@/lib/queryClient";
 import { 
   TOOLTIPS, 
   STUDY_TRIP_TRANSPORT_MODES, 
@@ -12,6 +12,7 @@ import {
   MEAL_TYPES 
 } from "@/lib/constants";
 import { calculateStudyTripEmissions } from "@/lib/calculations";
+import { StudyTripInput, studyTripSchema } from "@shared/schema";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,9 +27,9 @@ export default function StudyTrip() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const { formData, updateFormData } = useFormData();
 
-  // Define default values to initialize the form
-  const defaultValues: StudyTripInput = {
+  const defaultValues: StudyTripInput = formData.studyTrip as StudyTripInput || {
     destination: "",
     tripCount: 1,
     distanceKm: 0,
@@ -44,11 +45,20 @@ export default function StudyTrip() {
     mealType: "standard",
   };
 
-  // Initialize form with validation schema
   const form = useForm<StudyTripInput>({
     resolver: zodResolver(studyTripSchema),
     defaultValues,
   });
+
+  // Mettre à jour le contexte lorsque le formulaire change
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      if (value) {
+        updateFormData('studyTrip', value);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form, updateFormData]);
 
   // Watch for form values that trigger conditional fields
   const transportMode = form.watch("transportMode");

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
@@ -21,6 +21,7 @@ import { TRANSPORT_MODES, TOOLTIPS } from "@/lib/constants";
 import { transportSchema, type TransportInput, type TransportCSVData } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
+import { useFormData } from "@/context/FormContext";
 import { CSVUploader } from "@/components/CSVUploader";
 import { 
   calculateTransportEmissions, 
@@ -28,29 +29,38 @@ import {
   calculateTotalEmissions 
 } from "@/lib/calculations";
 import { Separator } from "@/components/ui/separator";
-import { findColumn, parseNumericValue, COLUMN_MAPPINGS } from "@/lib/csvUtils";
-
 
 export default function Transport() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { formData, updateFormData } = useFormData();
 
   // Generate default values for all transport modes
   const defaultValues: TransportInput = {
-    car: { distance: 0, frequency: 0, passengers: 1 },
-    bus: { distance: 0, frequency: 0, passengers: 1 },
-    train: { distance: 0, frequency: 0, passengers: 1 },
-    bicycle: { distance: 0, frequency: 0, passengers: 1 },
-    walking: { distance: 0, frequency: 0, passengers: 1 },
-    schoolBus: { distance: 0, frequency: 0, passengers: 1 },
-    isCSVImport: false
+    ...formData.transport as TransportInput || {
+      car: { distance: 0, frequency: 0, passengers: 1 },
+      bus: { distance: 0, frequency: 0, passengers: 1 },
+      train: { distance: 0, frequency: 0, passengers: 1 },
+      bicycle: { distance: 0, frequency: 0, passengers: 1 },
+      walking: { distance: 0, frequency: 0, passengers: 1 },
+      schoolBus: { distance: 0, frequency: 0, passengers: 1 },
+      isCSVImport: false
+    }
   };
 
   const form = useForm<TransportInput>({
     resolver: zodResolver(transportSchema),
     defaultValues
   });
+
+  // Mettre à jour le contexte lorsque le formulaire change
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      updateFormData('transport', value);
+    });
+    return () => subscription.unsubscribe();
+  }, [form, updateFormData]);
 
   async function onSubmit(data: TransportInput) {
     setIsSubmitting(true);
@@ -109,141 +119,65 @@ export default function Transport() {
     setIsProcessingCSV(true);
     
     try {
-      // Log reçu pour débogage
-      console.log('DEBUG - CSV data received:', data.length, 'rows');
-      
-      // Si le fichier est vide ou non valide
-      if (!data || data.length === 0) {
-        throw new Error("Le fichier importé ne contient pas de données valides.");
-      }
-      
-      // Récupérer les en-têtes du fichier pour pouvoir faire les correspondances
-      const firstRow = data[0];
-      const headers = Object.keys(firstRow);
-      console.log('DEBUG - CSV headers:', headers);
-      
       // Process and save the CSV data
-      // Convert the raw CSV data to our structured format with flexible column mapping
+      // Convert the raw CSV data to our structured format
       const structuredData: TransportCSVData[] = data.map(row => {
         // Check if student lives on campus
-        const residenceCol = findColumn(headers, COLUMN_MAPPINGS.residence) || '';
-        const residenceType = row[residenceCol] || "";
-        const isOnCampus = residenceType.toLowerCase().includes("campus") || 
-                           residenceType.toLowerCase().includes("foyer") || 
-                           residenceType.toLowerCase().includes("école");
-        
-        // Vérifier que la résidence ne contient pas "hors" ou "off"
-        const isExplicitlyOffCampus = residenceType.toLowerCase().includes("hors") || 
-                                      residenceType.toLowerCase().includes("off") || 
-                                      residenceType.toLowerCase().includes("externe");
-                                      
-        // Prioriser la détection explicite "hors campus" par rapport à l'inclusion du mot "campus"
-        const finalIsOnCampus = isExplicitlyOffCampus ? false : isOnCampus;
-        
-        // Trouver chaque colonne dans le fichier en utilisant notre fonction de correspondance flexible
-        const idCol = findColumn(headers, COLUMN_MAPPINGS.id) || '';
-        const emailCol = findColumn(headers, COLUMN_MAPPINGS.email) || '';
-        const nameCol = findColumn(headers, COLUMN_MAPPINGS.name) || '';
-        const lastModifiedCol = findColumn(headers, COLUMN_MAPPINGS.lastModified) || '';
-        const statusCol = findColumn(headers, COLUMN_MAPPINGS.status) || '';
-        
-        // Colonnes pour le trajet quotidien
-        const distanceARCol = findColumn(headers, COLUMN_MAPPINGS.distanceAllerRetour) || '';
-        const nbMoisEcoleCol = findColumn(headers, COLUMN_MAPPINGS.nbMoisEcole) || '';
-        const nbJoursMoisCol = findColumn(headers, COLUMN_MAPPINGS.nbJoursEcoleMois) || '';
-        
-        // Modes de transport
-        const kmBusCol = findColumn(headers, COLUMN_MAPPINGS.kmBus) || '';
-        const kmTrainCol = findColumn(headers, COLUMN_MAPPINGS.kmTrain) || '';
-        const kmMotoCol = findColumn(headers, COLUMN_MAPPINGS.kmMotoScooter) || '';
-        const typeMotoCol = findColumn(headers, COLUMN_MAPPINGS.typeCarburantMoto) || '';
-        const consoMotoCol = findColumn(headers, COLUMN_MAPPINGS.consommationMoto) || '';
-        
-        const kmVoitureCol = findColumn(headers, COLUMN_MAPPINGS.kmVoiture) || '';
-        const typeVoitureCol = findColumn(headers, COLUMN_MAPPINGS.typeCarburantVoiture) || '';
-        const consoVoitureCol = findColumn(headers, COLUMN_MAPPINGS.consommationVoiture) || '';
-        
-        // Transport personnel
-        const kmVoiturePersoCol = findColumn(headers, COLUMN_MAPPINGS.kmVoiturePerso) || '';
-        const typeCarburantPersoCol = findColumn(headers, COLUMN_MAPPINGS.typeCarburantPerso) || '';
-        const consoCarburantSemaineCol = findColumn(headers, COLUMN_MAPPINGS.consommationCarburantSemaine) || '';
-        const consoElecSemaineCol = findColumn(headers, COLUMN_MAPPINGS.consommationElectriciteSemaine) || '';
-        
-        // Livraisons
-        const nbLivraisonsSemaineCol = findColumn(headers, COLUMN_MAPPINGS.nbLivraisonsSemaine) || '';
-        const distanceLivraisonCol = findColumn(headers, COLUMN_MAPPINGS.distanceMoyenneLivraison) || '';
-        
-        // Visites familiales
-        const freqRetourFamilleCol = findColumn(headers, COLUMN_MAPPINGS.frequenceRetourFamille) || '';
-        const distRetourFamilleCol = findColumn(headers, COLUMN_MAPPINGS.distanceMoyenneRetourFamille) || '';
-        const kmBusRetourCol = findColumn(headers, COLUMN_MAPPINGS.kmBusRetourFamille) || '';
-        const kmTrainRetourCol = findColumn(headers, COLUMN_MAPPINGS.kmTrainRetourFamille) || '';
-        const kmMotoRetourCol = findColumn(headers, COLUMN_MAPPINGS.kmMotoRetourFamille) || '';
-        const typeCarburantMotoRetourCol = findColumn(headers, COLUMN_MAPPINGS.typeCarburantMotoRetour) || '';
-        const consoMotoRetourCol = findColumn(headers, COLUMN_MAPPINGS.consommationMotoRetour) || '';
-        const kmVoitureRetourCol = findColumn(headers, COLUMN_MAPPINGS.kmVoitureRetourFamille) || '';
-        const typeCarburantVoitureRetourCol = findColumn(headers, COLUMN_MAPPINGS.typeCarburantVoitureRetour) || '';
-        const consoVoitureRetourCol = findColumn(headers, COLUMN_MAPPINGS.consommationVoitureRetour) || '';
+        const residenceType = row["Résidence principale :"] || "";
+        const isOnCampus = residenceType.includes("campus") || residenceType.includes("foyer");
         
         return {
           // Basic information
-          id: row[idCol]?.toString() || "",
-          email: row[emailCol] || "",
-          nom: row[nameCol] || "",
-          lastModified: row[lastModifiedCol] || "",
-          statut: row[statusCol] || "",
+          id: row.ID?.toString() || "",
+          email: row["Adresse de messagerie"] || "",
+          nom: row.Nom || "",
+          lastModified: row["Heure de la dernière modification"] || "",
+          statut: row.Statut || "",
           residence: residenceType,
-          isOnCampus: finalIsOnCampus,
+          isOnCampus,
           
           // Daily commute (only relevant for off-campus students)
-          distanceAllerRetour: parseNumericValue(row[distanceARCol]) || 0,
-          // Mettre des valeurs par défaut si les informations sont manquantes
-          nbMoisEcole: parseNumericValue(row[nbMoisEcoleCol]) || 9,
-          nbJoursEcoleMois: parseNumericValue(row[nbJoursMoisCol]) || 20,
+          distanceAllerRetour: Number(row["Distance aller-retour domicile ↔ école (km/jour)  prend en considération le nombre d'aller-retour par jour :"]) || 0,
+          nbMoisEcole: Number(row["Nombre de mois par an où vous vous rendez à l'école (entre 1 et 12 ):"]) || 0,
+          nbJoursEcoleMois: Number(row["Nombre de jours par mois où vous vous rendez à l'école (entre 1 et 30) :"]) || 0,
           
           // Transportation modes
-          kmBus: parseNumericValue(row[kmBusCol]) || 0,
-          kmTrain: parseNumericValue(row[kmTrainCol]) || 0,
-          kmMotoScooter: parseNumericValue(row[kmMotoCol]) || 0,
-          typeCarburantMoto: row[typeMotoCol] || "",
-          consommationMoto: parseNumericValue(row[consoMotoCol]) || 0,
+          kmBus: Number(row["Combien de km en bus ?"]) || 0,
+          kmTrain: Number(row["Combien de km en Train ?"]) || 0,
+          kmMotoScooter: Number(row["Combien de km en Moto/Scooter ?"]) || 0,
+          typeCarburantMoto: row["Type de carburant :2"] || "",
+          consommationMoto: Number(row["Consommation journalière de carburant (en L):1"]) || 0,
           
-          kmVoiture: parseNumericValue(row[kmVoitureCol]) || 0,
-          typeCarburantVoiture: row[typeVoitureCol] || "",
-          consommationVoiture: parseNumericValue(row[consoVoitureCol]) || 0,
+          kmVoiture: Number(row["Combien de km en Voiture ?"]) || 0,
+          typeCarburantVoiture: row["Type de carburant :3"] || "",
+          consommationVoiture: Number(row["Consommation journalière de carburant (en L):2"]) || 0,
           
           // Personal transport
-          kmVoiturePerso: parseNumericValue(row[kmVoiturePersoCol]) || 0,
-          typeCarburantPerso: row[typeCarburantPersoCol] || "",
-          consommationCarburantSemaine: parseNumericValue(row[consoCarburantSemaineCol]) || 0,
-          consommationElectriciteSemaine: parseNumericValue(row[consoElecSemaineCol]) || 0,
+          kmVoiturePerso: Number(row["Combien de km en Voiture personnelle/Covoiturage/Taxi?"]) || 0,
+          typeCarburantPerso: row["Type de carburant :4"] || "",
+          consommationCarburantSemaine: Number(row["Consommation de carburant en moyenne par semaine (en L) :"]) || 0,
+          consommationElectriciteSemaine: Number(row["Consommation d'électricité en moyenne par semaine (en kWh) :"]) || 0,
           
           // Deliveries
-          nbLivraisonsSemaine: parseNumericValue(row[nbLivraisonsSemaineCol]) || 0,
-          distanceMoyenneLivraison: parseNumericValue(row[distanceLivraisonCol]) || 0,
+          nbLivraisonsSemaine: Number(row["Nombre moyen de livraisons (repas, colis) reçues par semaine :"]) || 0,
+          distanceMoyenneLivraison: Number(row["Distance moyenne pour une livraison (Km) :"]) || 0,
           
           // Family visits and return transport
-          frequenceRetourFamille: parseNumericValue(row[freqRetourFamilleCol]) || 0,
-          distanceMoyenneRetourFamille: parseNumericValue(row[distRetourFamilleCol]) || 0,
-          kmBusRetourFamille: parseNumericValue(row[kmBusRetourCol]) || 0,
-          kmTrainRetourFamille: parseNumericValue(row[kmTrainRetourCol]) || 0,
-          kmMotoRetourFamille: parseNumericValue(row[kmMotoRetourCol]) || 0,
-          typeCarburantMotoRetour: row[typeCarburantMotoRetourCol] || "",
-          consommationMotoRetour: parseNumericValue(row[consoMotoRetourCol]) || 0,
-          kmVoitureRetourFamille: parseNumericValue(row[kmVoitureRetourCol]) || 0,
-          typeCarburantVoitureRetour: row[typeCarburantVoitureRetourCol] || "",
-          consommationVoitureRetour: parseNumericValue(row[consoVoitureRetourCol]) || 0,
+          frequenceRetourFamille: Number(row["Fréquence des retours en famille pendant une semestre :"]) || 0,
+          distanceMoyenneRetourFamille: Number(row["Distance moyenne en (Km) d'aller-retour :"]) || 0,
+          kmBusRetourFamille: Number(row["Combien de km en Bus ?3"]) || 0,
+          kmTrainRetourFamille: Number(row["Combien de km en Train ?3"]) || 0,
+          kmMotoRetourFamille: Number(row["Combien de km en Moto ?2"]) || 0,
+          typeCarburantMotoRetour: row["Type de carburant :5"] || "",
+          consommationMotoRetour: Number(row["Consommation journalière de carburant (en L):3"]) || 0,
+          kmVoitureRetourFamille: Number(row["Combien de km en Voiture ?2"]) || 0,
+          typeCarburantVoitureRetour: row["Type de carburant :6"] || "",
+          consommationVoitureRetour: Number(row["Consommation journalière de carburant (en L):4"]) || 0,
           
           // Keep all original data
           rawData: row,
         };
       });
-
-      // Log pour débogage
-      console.log('DEBUG - Structured data created:', structuredData.length, 'rows');
-      if (structuredData.length > 0) {
-        console.log('DEBUG - First row sample:', JSON.stringify(structuredData[0], null, 2));
-      }
 
       // Update state with the CSV data
       setCsvData(structuredData);
@@ -253,14 +187,14 @@ export default function Transport() {
       form.setValue("isCSVImport", true);
       
       toast({
-        title: "Données importées avec succès",
+        title: "Données CSV importées avec succès",
         description: `${structuredData.length} enregistrements ont été importés.`,
       });
     } catch (error) {
       console.error("Error processing CSV data:", error);
       toast({
         title: "Erreur lors du traitement des données",
-        description: error instanceof Error ? error.message : "Le format du fichier n'est pas compatible.",
+        description: "Le format du fichier CSV n'est pas compatible.",
         variant: "destructive",
       });
     } finally {
@@ -313,7 +247,7 @@ export default function Transport() {
       });
 
       // Navigate to results
-      navigate("/restauration");
+      navigate("/results");
     } catch (error) {
       console.error("Error submitting CSV transport data:", error);
       toast({
